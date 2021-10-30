@@ -50,13 +50,40 @@ class Utilities:
       # if points are equal
       angle = 0
     return angle
-
+  
 
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
+  def __init__(self, page_frame):
+    self.canvas_dimensions = {
+      "x": 1000,
+      "y" : 850
+    }
+    self.canvas = tk.Canvas(
+      master=page_frame,
+      width=self.canvas_dimensions.get("x"),
+      height=self.canvas_dimensions.get("y"),
+      bg="white",
+      relief="solid",
+      borderwidth=1
+    )
+    self.canvas.grid(padx=5)
+    self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
+    self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
+    self.utils = Utilities()
+    self.canvas.bind("<Motion>", self.on_cursor_move)
+
+  def on_cursor_move(self, event):
+    x = event.x
+    y = event.y
+    angle = self.utils.resolve_angle(self.canvas_centre_x, self.canvas_centre_y, x, y)
+    print(angle)
+
+
+class Menu:
+  # Class for the menu, includes load, cheat code enter and key remapping
   def __init__(self):
     pass
-
 
 class Application: 
   # Class for the whole application, contains tkinter top window and etc.
@@ -65,17 +92,34 @@ class Application:
       "x": 1440,
       "y": 900
     }
+    self.state = "game" # Game states: menu, game
     # Initialize the main window
     self.main_window = tk.Tk()
     self.main_window.title("SpaceShootaz")
     self.main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}")
     self.main_window.configure(bg='white')
+    self.main_window.resizable(False, False)
+    # Window should not be touched, so organise everything in a frame
+    self.page_frame = tk.Frame(master=self.main_window, bg="white")
+
+    self.on_app_state_change()
+    self.page_frame.grid()
     self.main_window.mainloop()
 
+  def on_app_state_change(self):
+    # Destroy children widgets to reset the window on state change
+    list = self.page_frame.grid_slaves()
+    for l in list:
+      l.destroy()
+    
+    if self.state == "game":
+      game = Game(self.page_frame)
+    pass
+
 def main():
-  #app = Application()
-  utils = Utilities()
-  utils.resolve_angle(250, 250, 245, 245)
+  app = Application()
+  
+  
 
 
 if __name__ == "__main__":
