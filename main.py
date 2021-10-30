@@ -18,23 +18,37 @@ class Utilities:
     y_diff = y2 - y1
     angle = 0
 
-    if x_diff >= 0 and y_diff <= 0: 
+    if x_diff > 0 and y_diff < 0: 
       # If in upper right quodrant
       y_diff = abs(y_diff)
       angle = math.atan(x_diff / y_diff)
-    elif x_diff >= 0 and y_diff >= 0: 
+    elif x_diff > 0 and y_diff > 0: 
       # If in lower right quodrant
       angle = math.atan(y_diff / x_diff) + math.pi/2
-    elif x_diff <= 0 and y_diff >= 0: 
+    elif x_diff < 0 and y_diff > 0: 
       # If in lower left quodrant
       x_diff = abs(x_diff)
       angle = math.atan(x_diff / y_diff) + math.pi
-    else:
+    elif x_diff < 0 and y_diff < 0:
       # If in upper left quodrant
       x_diff = abs(x_diff)
       y_diff = abs(y_diff)
       angle = math.atan(y_diff / x_diff) + (3/2 * math.pi)
-
+    elif x_diff == 0 and y_diff < 0:
+      # if straight up
+      angle = 0
+    elif x_diff > 0 and y_diff == 0:
+      # if staight right
+      angle = math.pi / 2
+    elif x_diff == 0 and y_diff > 0:
+      # if straight down
+      angle = 3/2 * math.pi
+    elif x_diff < 0 and y_diff == 0:
+      # if staight left
+      angle = 2 * math.pi
+    else:
+      # if points are equal
+      angle = 0
     return angle
 
 
