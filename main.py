@@ -42,10 +42,10 @@ class Utilities:
       angle = math.pi / 2
     elif x_diff == 0 and y_diff > 0:
       # if straight down
-      angle = 3/2 * math.pi
+      angle =  math.pi
     elif x_diff < 0 and y_diff == 0:
       # if staight left
-      angle = 2 * math.pi
+      angle = 3/2 * math.pi
     else:
       # if points are equal
       angle = 0
