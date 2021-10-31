@@ -93,6 +93,10 @@ class Utilities:
     
     return (x1 + x_offset, y1 + y_offset)
 
+  def calculate_length(self, x1: float, y1: float, x2: float, y2: float) -> float:
+    # calculates length between two points
+    return math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
+
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
   def __init__(self, page_frame):
