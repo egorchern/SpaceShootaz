@@ -133,6 +133,31 @@ class Ship:
     ]
     self.standard_lengths = []
     self.standard_angles = []
+    self.calculate_standard_lengths_and_angles()
+
+  
+  def calculate_standard_lengths_and_angles(self):
+    # Calculates reference angles for using them to offset tilt calculation
+    for i in range(0, len(self.points), 2):
+      x = self.points[i]
+      y = self.points[i + 1]
+      length = self.utils.calculate_length(self.focal_point[0], self.focal_point[1], x, y)
+      self.standard_lengths.append(length)
+      angle = self.utils.resolve_angle(self.focal_point[0], self.focal_point[1], x, y)
+      self.standard_angles.append(angle)
+  
+  def transform_points(self, angle: float):
+    # Tilts points by given angle 
+    self.angle = angle
+    for i in range(0, len(self.points), 2):
+      temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.standard_lengths[i // 2], self.standard_angles[i // 2] + self.angle)
+      self.points[i] = temp[0]
+      self.points[i + 1] = temp[1]
+
+  def draw(self):
+    self.canvas.create_polygon(self.points, fill=self.color)
+    
+
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
   def __init__(self, page_frame):
