@@ -1,5 +1,5 @@
 # Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester python coursework
-# DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
+# Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
 import tkinter as tk
 import math
 
@@ -51,6 +51,43 @@ class Utilities:
       angle = 0
     return angle
   
+  def resolve_point(self, x1: float, y1: float, length: float, angle: float) -> float:
+    # Calculates (x2, y2) point translated using angle with given angle, length and a reference point.
+    x_offset = 0
+    y_offset = 0
+    if angle == 0:
+      # if staight top
+      y_offset = -length
+    elif angle < math.pi/2:
+      # if in top right quodrant
+      x_offset = math.sin(angle) * length
+      y_offset = -math.cos(angle) * length
+    elif angle == math.pi/2:
+      # if staight right
+      x_offset = length
+    elif angle > math.pi/2 and angle < math.pi:
+      # if in bottom right quodrant
+      angle -= math.pi/2
+      x_offset = math.cos(angle) * length
+      y_offset = math.sin(angle) * length
+    elif angle == math.pi:
+      # if staight down
+      y_offset = length
+    elif angle > math.pi and angle < 3/2 * math.pi:
+      # if in bottom left quodrant
+      angle -= math.pi
+      x_offset = -math.sin(angle) * length
+      y_offset = math.cos(angle) * length
+    elif angle == 3/2 * math.pi:
+      # if staight left
+      x_offset = -length
+    elif angle > 3/2 * math.pi:
+      # if in top left quodrant
+      angle -= 3/2 * math.pi
+      x_offset = -math.cos(angle) * length
+      y_offset = -math.sin(angle) * length
+    
+    return (x1 + x_offset, y1 + y_offset)
 
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
@@ -78,6 +115,9 @@ class Game:
     y = event.y
     angle = self.utils.resolve_angle(self.canvas_centre_x, self.canvas_centre_y, x, y)
     print(angle)
+    point = self.utils.resolve_point(self.canvas_centre_x, self.canvas_centre_y, 100, angle)
+    self.canvas.delete("all")
+    self.canvas.create_line(self.canvas_centre_x, self.canvas_centre_y, point[0], point[1], width=1.2)
 
 
 class Menu:
