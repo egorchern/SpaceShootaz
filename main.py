@@ -51,8 +51,12 @@ class Utilities:
       angle = 0
     return angle
   
-  def resolve_point(self, x1: float, y1: float, length: float, angle: float) -> float:
+  def resolve_point(self, x1: float, y1: float, length: float, angle: float) -> tuple:
     # Calculates (x2, y2) point translated using angle with given angle, length and a reference point.
+    # Reduces angle to optimal range
+    while(angle >= 2 * math.pi):
+      angle -= 2 * math.pi
+
     x_offset = 0
     y_offset = 0
     if angle == 0:
