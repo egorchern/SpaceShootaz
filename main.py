@@ -112,16 +112,44 @@ class Game:
     self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
     self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
     self.utils = Utilities()
+    self.fps = 60
+    self.ms_interval = math.floor(1000 / self.fps)
+    self.frame_counter = 1
+    self.angle = 0
+    self.triangle_points = [self.canvas_centre_x - 30, self.canvas_centre_y, self.canvas_centre_x, self.canvas_centre_y - 30, self.canvas_centre_x + 30, self.canvas_centre_y]
     self.canvas.bind("<Motion>", self.on_cursor_move)
+    self.canvas.after(self.ms_interval, self.on_frame)
+
+  def on_frame(self):
+    # Deletes everything from the canvas
+    self.canvas.delete("all")
+    # For testing, draw triangle with vertex pointing to the cursor
+    self.canvas.create_polygon(self.triangle_points, fill="blue", width=2)
+    self.canvas.after(self.ms_interval, self.on_frame)
+    pass
+
+  def transform_points(self):
+    # Triangle point translation
+    # Transform vertex literally from centre to the angle cursor is pointing
+    temp = self.utils.resolve_point(self.canvas_centre_x, self.canvas_centre_y, 30, self.angle)
+    self.triangle_points[2] = temp[0]
+    self.triangle_points[3] = temp[1]
+    # Transform left triangle point
+    temp = self.utils.resolve_point(self.canvas_centre_x, self.canvas_centre_y, 30, self.angle + 3/2 * math.pi)
+    self.triangle_points[0] = temp[0]
+    self.triangle_points[1] = temp[1]
+    # Transform right triangle point
+    temp = self.utils.resolve_point(self.canvas_centre_x, self.canvas_centre_y, 30, self.angle + math.pi/2)
+    self.triangle_points[4] = temp[0]
+    self.triangle_points[5] = temp[1]
+    pass
 
   def on_cursor_move(self, event):
     x = event.x
     y = event.y
-    angle = self.utils.resolve_angle(self.canvas_centre_x, self.canvas_centre_y, x, y)
-    print(angle)
-    point = self.utils.resolve_point(self.canvas_centre_x, self.canvas_centre_y, 100, angle)
-    self.canvas.delete("all")
-    self.canvas.create_line(self.canvas_centre_x, self.canvas_centre_y, point[0], point[1], width=1.2)
+    self.angle = self.utils.resolve_angle(self.canvas_centre_x, self.canvas_centre_y, x, y)
+    print(self.angle)
+    self.transform_points()
 
 
 class Menu:
