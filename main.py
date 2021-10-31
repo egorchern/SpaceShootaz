@@ -97,6 +97,42 @@ class Utilities:
     # calculates length between two points
     return math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
 
+class Ship:
+  # Generic ship class, with functions like tilt
+  def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str):
+    self.canvas = canvas
+    self.ship_width = width
+    self.ship_height = height
+    self.focal_point = focal_point
+    self.top_ship_section_percentage = 0.85
+    self.body_height_percentage = 0.45
+    self.head_width_percentage = 0.3
+    self.wing_flap_width_percentage = 0.4
+    self.angle = angle
+    self.utils = Utilities()
+    self.color = color
+    self.points = [
+      self.focal_point[0],
+      self.focal_point[1] - self.top_ship_section_percentage * height,
+      self.focal_point[0] + self.head_width_percentage * (width / 2),
+      self.focal_point[1] - self.top_ship_section_percentage * height * self.body_height_percentage,
+      self.focal_point[0] + width / 2,
+      self.focal_point[1],
+      self.focal_point[0] + width / 2,
+      self.focal_point[1] + (1 - self.top_ship_section_percentage) * height,
+      self.focal_point[0] + (1 - self.wing_flap_width_percentage) * width / 2,
+      self.focal_point[1],
+      self.focal_point[0] - (1 - self.wing_flap_width_percentage) * width / 2,
+      self.focal_point[1],
+      self.focal_point[0] - width / 2,
+      self.focal_point[1] + (1 - self.top_ship_section_percentage) * height,
+      self.focal_point[0] - width / 2,
+      self.focal_point[1],
+      self.focal_point[0] - self.head_width_percentage * (width / 2),
+      self.focal_point[1] - self.top_ship_section_percentage * height * self.body_height_percentage
+    ]
+    self.standard_lengths = []
+    self.standard_angles = []
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
   def __init__(self, page_frame):
