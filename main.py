@@ -99,18 +99,21 @@ class Utilities:
 
 class Ship:
   # Generic ship class, with functions like tilt
-  def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str):
+  def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str, fps: int):
     self.canvas = canvas
     self.ship_width = width
     self.ship_height = height
     self.focal_point = focal_point
     self.top_ship_section_percentage = 0.85
+    self.speed_per_second = 400
+    self.speed = self.speed_per_second / fps
     self.body_height_percentage = 0.45
     self.head_width_percentage = 0.3
     self.wing_flap_width_percentage = 0.4
     self.angle = angle
     self.utils = Utilities()
     self.color = color
+    # Calculate starting points
     self.points = [
       self.focal_point[0],
       self.focal_point[1] - self.top_ship_section_percentage * height,
@@ -135,7 +138,13 @@ class Ship:
     self.standard_angles = []
     self.calculate_standard_lengths_and_angles()
 
-  
+  def move(self):
+    # Moves in the current direction by incrementing focal point with speed and recalculating points
+    temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
+    self.focal_point[0] = temp[0]
+    self.focal_point[1] = temp[1]
+    self.transform_points(self.angle)
+
   def calculate_standard_lengths_and_angles(self):
     # Calculates reference angles for using them to offset tilt calculation
     for i in range(0, len(self.points), 2):
@@ -150,6 +159,7 @@ class Ship:
     # Tilts points by given angle 
     self.angle = angle
     for i in range(0, len(self.points), 2):
+      # Resolves the new point, when the current point is tilted at current angle
       temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.standard_lengths[i // 2], self.standard_angles[i // 2] + self.angle)
       self.points[i] = temp[0]
       self.points[i + 1] = temp[1]
@@ -160,13 +170,14 @@ class Ship:
 
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
-  def __init__(self, page_frame):
+  def __init__(self, main_window):
     self.canvas_dimensions = {
       "x": 1000,
       "y" : 850
     }
+    self.main_window = main_window
     self.canvas = tk.Canvas(
-      master=page_frame,
+      master=main_window,
       width=self.canvas_dimensions.get("x"),
       height=self.canvas_dimensions.get("y"),
       bg="white",
@@ -185,8 +196,9 @@ class Game:
     self.player_height = 50
     self.player_color = "#41bfff"
     # Initialize player ship object
-    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color)
+    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps)
     self.canvas.bind("<Motion>", self.on_cursor_move)
+    self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.after(self.ms_interval, self.on_frame)
     
 
@@ -201,8 +213,16 @@ class Game:
     # Adjusts angle variable depending on where user points the cursor
     x = event.x
     y = event.y
-    self.angle = self.utils.resolve_angle(self.canvas_centre_x, self.canvas_centre_y, x, y)
+    self.angle = self.utils.resolve_angle(self.player.focal_point[0], self.player.focal_point[1], x, y)
     self.player.transform_points(self.angle)
+  
+  def on_key_press(self, event):
+    # Handles key presses
+    key = event.char
+    # TODO remapable keys
+    if key == "w":
+      self.player.move()
+  
     
 
 
@@ -225,21 +245,17 @@ class Application:
     self.main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}")
     self.main_window.configure(bg='white')
     self.main_window.resizable(False, False)
-    # Window should not be touched, so organise everything in a frame
-    self.page_frame = tk.Frame(master=self.main_window, bg="white")
-
     self.on_app_state_change()
-    self.page_frame.grid()
     self.main_window.mainloop()
 
   def on_app_state_change(self):
     # Destroy children widgets to reset the window on state change
-    list = self.page_frame.grid_slaves()
+    list = self.main_window.grid_slaves()
     for l in list:
       l.destroy()
     
     if self.state == "game":
-      game = Game(self.page_frame)
+      game = Game(self.main_window)
     pass
 
 def main():
