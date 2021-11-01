@@ -97,6 +97,25 @@ class Utilities:
     # calculates length between two points
     return math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
 
+  def is_out_of_bounds(self, obj_min_x: float, obj_max_x: float, obj_min_y: float, obj_max_y: float, bounds_max_x: float, bounds_max_y: float) -> bool:
+    # Calculates if the object is out of bounds using the box model
+    if(obj_min_x < 0):
+      # If left of object is out of bounds
+      return True
+    elif(obj_max_x > bounds_max_x):
+      # If right of object is out of bounds
+      return True
+    elif(obj_min_y < 0):
+      # If top of object is out of bounds
+      return True
+    elif(obj_max_y > bounds_max_y):
+      # If bottom of object is out of bounds
+      return True
+    else:
+      # If inside bounds
+      return False
+  
+
 class Ship:
   # Generic ship class, with functions like tilt
   def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str, fps: int):
