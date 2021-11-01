@@ -118,8 +118,9 @@ class Utilities:
 
 class Ship:
   # Generic ship class, with functions like tilt
-  def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str, fps: int):
+  def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str, fps: int, canvas_dimensions: dict):
     self.canvas = canvas
+    self.canvas_dimensions = canvas_dimensions
     self.ship_width = width
     self.ship_height = height
     self.focal_point = focal_point
@@ -160,9 +161,21 @@ class Ship:
   def move(self):
     # Moves in the current direction by incrementing focal point with speed and recalculating points
     temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
-    self.focal_point[0] = temp[0]
-    self.focal_point[1] = temp[1]
-    self.transform_points(self.angle)
+    # Get all X coordinates anc calc min and max
+    xs = [self.points[i] for i in range(0, len(self.points), 2)]
+    min_x = min(xs)
+    max_x = max(xs)
+    # Get all Y coordinates and calc min and max
+    ys = [self.points[i] for i in range(1, len(self.points), 2)]
+    min_y = min(ys)
+    max_y = max(ys)
+    # Check if the move will resolve in ship being out of bounds
+    out_of_bounds = self.utils.is_out_of_bounds(min_x, max_x, min_y, max_y, self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
+    if not out_of_bounds:
+      # If not outside bounds then move in direction
+      self.focal_point[0] = temp[0]
+      self.focal_point[1] = temp[1]
+      self.transform_points(self.angle)
 
   def calculate_standard_lengths_and_angles(self):
     # Calculates reference angles for using them to offset tilt calculation
@@ -215,7 +228,7 @@ class Game:
     self.player_height = 50
     self.player_color = "#41bfff"
     # Initialize player ship object
-    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps)
+    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions)
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.after(self.ms_interval, self.on_frame)
