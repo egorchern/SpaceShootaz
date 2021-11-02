@@ -153,14 +153,14 @@ class Utilities:
 
 class Ship:
   # Generic ship class, with functions like tilt
-  def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str, fps: int, canvas_dimensions: dict):
+  def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str, fps: int, canvas_dimensions: dict, speed_per_second: int):
     self.canvas = canvas
     self.canvas_dimensions = canvas_dimensions
     self.ship_width = width
     self.ship_height = height
     self.focal_point = focal_point
     self.top_ship_section_percentage = 0.85
-    self.speed_per_second = 450
+    self.speed_per_second = speed_per_second
     self.speed = self.speed_per_second / fps
     self.body_height_percentage = 0.45
     self.head_width_percentage = 0.3
@@ -168,7 +168,8 @@ class Ship:
     self.angle = angle
     self.utils = Utilities()
     self.color = color
-    # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that
+    self.display_hitboxes = True
+    # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]]
     self.points = [
       self.focal_point[0],
       self.focal_point[1] - self.top_ship_section_percentage * height,
@@ -189,19 +190,43 @@ class Ship:
       self.focal_point[0] - self.head_width_percentage * (width / 2),
       self.focal_point[1] - self.top_ship_section_percentage * height * self.body_height_percentage
     ]
-    self.standard_lengths = []
-    self.standard_angles = []
-    self.calculate_standard_lengths_and_angles()
+    # Hitboxes have format: [[top_left, top_right, bottom_right, bottom_left]]
+    self.hitboxes = [
+      [
+        self.focal_point[0] - self.head_width_percentage * (width / 2),
+        self.focal_point[1] - self.top_ship_section_percentage * height,
+        self.focal_point[0] + self.head_width_percentage * (width / 2),
+        self.focal_point[1] - self.top_ship_section_percentage * height,
+        self.focal_point[0] + self.head_width_percentage * (width / 2),
+        self.focal_point[1] - self.top_ship_section_percentage * height * self.body_height_percentage,
+        self.focal_point[0] - self.head_width_percentage * (width / 2),
+        self.focal_point[1] - self.top_ship_section_percentage * height * self.body_height_percentage,
+      ],
+      [
+        self.focal_point[0] - width / 2,
+        self.focal_point[1] - self.top_ship_section_percentage * height * self.body_height_percentage,
+        self.focal_point[0] + width / 2,
+        self.focal_point[1] - self.top_ship_section_percentage * height * self.body_height_percentage,
+        self.focal_point[0] + width / 2,
+        self.focal_point[1] + (1 - self.top_ship_section_percentage) * height,
+        self.focal_point[0] - width / 2,
+        self.focal_point[1] + (1 - self.top_ship_section_percentage) * height
+      ]
+    ]
+    # Calculate lengths angles from focal to points, used in tilt point calculation
+    self.points = self.utils.calculate_points_metadata(self.points, self.focal_point)
+    self.calculate_hitboxes_metadata()
+    self.transform(self.angle)
 
   def move(self):
     # Moves in the current direction by incrementing focal point with speed and recalculating points
     temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
     # Get all X coordinates anc calc min and max
-    xs = [self.points[i] for i in range(0, len(self.points), 2)]
+    xs = [self.points[i] for i in range(0, len(self.points) - 2, 2)]
     min_x = min(xs)
     max_x = max(xs)
     # Get all Y coordinates and calc min and max
-    ys = [self.points[i] for i in range(1, len(self.points), 2)]
+    ys = [self.points[i] for i in range(1, len(self.points) - 2, 2)]
     min_y = min(ys)
     max_y = max(ys)
     # Check if the move will resolve in ship being out of bounds
@@ -210,29 +235,33 @@ class Ship:
       # If not outside bounds then move in direction
       self.focal_point[0] = temp[0]
       self.focal_point[1] = temp[1]
-      self.transform_points(self.angle)
-
-  def calculate_standard_lengths_and_angles(self):
-    # Calculates reference angles for using them to offset tilt calculation
-    for i in range(0, len(self.points), 2):
-      x = self.points[i]
-      y = self.points[i + 1]
-      length = self.utils.calculate_length(self.focal_point[0], self.focal_point[1], x, y)
-      self.standard_lengths.append(length)
-      angle = self.utils.resolve_angle(self.focal_point[0], self.focal_point[1], x, y)
-      self.standard_angles.append(angle)
+      self.transform(self.angle)
   
-  def transform_points(self, angle: float):
-    # Tilts points by given angle 
+  def calculate_hitboxes_metadata(self):
+    # Same as points metadata generation, but iterate throught every hitbox
+    for i in range(len(self.hitboxes)):
+      hitbox = self.utils.calculate_points_metadata(self.hitboxes[i], self.focal_point)
+      self.hitboxes[i] = hitbox
+  
+  def transform(self, angle: float):
+    # Driver code for transforming points using generic transform function
     self.angle = angle
-    for i in range(0, len(self.points), 2):
-      # Resolves the new point, when the current point is tilted at current angle
-      temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.standard_lengths[i // 2], self.standard_angles[i // 2] + self.angle)
-      self.points[i] = temp[0]
-      self.points[i + 1] = temp[1]
+    temp = self.utils.transform(self.focal_point, self.angle, self.points, self.hitboxes)
+    self.points = temp[0]
+    self.hitboxes = temp[1]
+
+  def draw_hitboxes(self):
+    # Draws the box via lines
+    for hitbox in self.hitboxes:
+      self.canvas.create_line(hitbox[0], hitbox[1], hitbox[2], hitbox[3])
+      self.canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
+      self.canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
+      self.canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
 
   def draw(self):
-    self.canvas.create_polygon(self.points, fill=self.color)
+    self.canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
+    if self.display_hitboxes:
+      self.draw_hitboxes()
     
 
 class Game:
@@ -259,11 +288,12 @@ class Game:
     self.ms_interval = math.floor(1000 / self.fps)
     self.frame_counter = 1
     self.angle = 0
-    self.player_width = 50
+    self.player_width = 45
     self.player_height = 50
+    self.player_speed_per_second = 500
     self.player_color = "#41bfff"
     # Initialize player ship object
-    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions)
+    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions, self.player_speed_per_second)
     # Bind events
     self.parse_config()
     self.canvas.bind("<Motion>", self.on_cursor_move)
@@ -305,14 +335,15 @@ class Game:
               v = " "
             self.controls[k] = v
       
-          
-          
-
   def on_frame(self):
     # Deletes everything from the canvas
     self.canvas.delete("all")
     self.player.draw()
     self.canvas.after(self.ms_interval, self.on_frame)
+    print(self.frame_counter)
+    self.frame_counter += 1
+    if(self.frame_counter > self.fps):
+      self.frame_counter = 1
     pass
 
   def on_cursor_move(self, event):
@@ -320,7 +351,7 @@ class Game:
     x = event.x
     y = event.y
     self.angle = self.utils.resolve_angle(self.player.focal_point[0], self.player.focal_point[1], x, y)
-    self.player.transform_points(self.angle)
+    self.player.transform(self.angle)
   
   def on_key_press(self, event):
     # Handles key presses
