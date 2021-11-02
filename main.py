@@ -2,7 +2,8 @@
 # Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
 import tkinter as tk
 import math
-
+import configparser
+import pathlib
 
 class Utilities:
   # Class for utility functions, such as resolve angle and resolve point
@@ -125,7 +126,7 @@ class Ship:
     self.ship_height = height
     self.focal_point = focal_point
     self.top_ship_section_percentage = 0.85
-    self.speed_per_second = 400
+    self.speed_per_second = 450
     self.speed = self.speed_per_second / fps
     self.body_height_percentage = 0.45
     self.head_width_percentage = 0.3
@@ -133,7 +134,7 @@ class Ship:
     self.angle = angle
     self.utils = Utilities()
     self.color = color
-    # Calculate starting points
+    # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that
     self.points = [
       self.focal_point[0],
       self.focal_point[1] - self.top_ship_section_percentage * height,
@@ -229,10 +230,49 @@ class Game:
     self.player_color = "#41bfff"
     # Initialize player ship object
     self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions)
+    # Bind events
+    self.parse_config()
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.after(self.ms_interval, self.on_frame)
-    
+  
+  def create_new_config(self):
+    # Creates a new config.ini file with standard settings below
+    parser = configparser.ConfigParser()
+    parser.add_section("IDENTITY")
+    parser.set("IDENTITY", "Name", "Bob the Builder")
+    parser.add_section("CONTROLS")
+    parser.set("CONTROLS", "Move", "w")
+    parser.set("CONTROLS", "Pause", "space")
+    parser.set("CONTROLS", "Boss_key", "p")
+    file = open("config.ini", "w")
+    parser.write(file)
+    file.close()
+
+  def parse_config(self):
+    # Checks whether there is a config file
+    file_exists = pathlib.Path("config.ini").exists()
+    if not file_exists:
+      # If no config, create new and read again
+      self.create_new_config()
+      self.parse_config()
+    else:
+      parser = configparser.ConfigParser()
+      parser.read("config.ini")
+      self.controls = {}
+      # Parse config by sections
+      for sect in parser.sections():
+        for k, v in parser.items(sect):
+          if sect == "IDENTITY":
+            self.identity = v
+          elif sect == "CONTROLS":
+            # Tkinter treats space characters as " " thats why it is here
+            if v == "space":
+              v = " "
+            self.controls[k] = v
+      
+          
+          
 
   def on_frame(self):
     # Deletes everything from the canvas
@@ -251,13 +291,10 @@ class Game:
   def on_key_press(self, event):
     # Handles key presses
     key = event.char
-    # TODO remapable keys
-    if key == "w":
+    if self.controls.get("move") == key:
       self.player.move()
   
     
-
-
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
   def __init__(self):
