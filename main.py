@@ -5,6 +5,7 @@ import math
 import configparser
 import pathlib
 
+
 class Utilities:
   # Class for utility functions, such as resolve angle and resolve point
   def __init__(self):
@@ -115,6 +116,39 @@ class Utilities:
     else:
       # If inside bounds
       return False
+  
+  def transform(self, focal_point, angle, points, hitboxes):
+    # Tilts points by given angle 
+    for i in range(0, len(points) - 2, 2):
+      # Resolves the new point, when the current point is tilted at current angle
+      temp = self.resolve_point(focal_point[0], focal_point[1], points[-2][i // 2], points[-1][i // 2] + angle)
+      points[i] = temp[0]
+      points[i + 1] = temp[1]
+    # Tilts hitboxes
+    for j in range(len(hitboxes)):
+      hitbox = hitboxes[j]
+      for i in range(0, len(hitbox) - 2, 2):
+        # Resolve the same as with object points, just do for every hitbox
+        temp = self.resolve_point(focal_point[0], focal_point[1], hitbox[-2][i // 2], hitbox[-1][i // 2] + angle)
+        hitbox[i] = temp[0]
+        hitbox[i + 1] = temp[1]
+
+    return (points, hitboxes)
+
+  def calculate_points_metadata(self, points: list, focal_point: list) -> list:
+    # Calculates reference angles for using them to offset tilt calculation
+    lengths = []
+    angles = []
+    for i in range(0, len(points), 2):
+      x = points[i]
+      y = points[i + 1]
+      length = self.calculate_length(focal_point[0], focal_point[1], x, y)
+      lengths.append(length)
+      angle = self.resolve_angle(focal_point[0], focal_point[1], x, y)
+      angles.append(angle)
+    points.append(lengths)
+    points.append(angles)
+    return points
   
 
 class Ship:
