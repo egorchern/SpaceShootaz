@@ -150,6 +150,80 @@ class Utilities:
     points.append(angles)
     return points
   
+class Bullet:
+  # Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation
+  def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, angle, fps, color):
+    self.canvas = canvas
+    self.canvas_dimensions = canvas_dimensions
+    self.width = width
+    self.height = height
+    self.focal_point = focal_point
+    self.speed = speed
+    self.angle = angle
+    self.utils = Utilities()
+    self.color = color
+    # Double sided triangle
+    self.points = [
+      self.focal_point[0],
+      self.focal_point[1] - self.height / 2,
+      self.focal_point[0] + self.width / 2,
+      self.focal_point[1],
+      self.focal_point[0],
+      self.focal_point[1] + self.height / 2,
+      self.focal_point[0] - self.width / 2,
+      self.focal_point[1]
+
+    ]
+    self.hitboxes = [
+      [
+        self.focal_point[0] - self.width / 2,
+        self.focal_point[1] - self.height / 2,
+        self.focal_point[0] + self.width / 2,
+        self.focal_point[1] - self.height / 2,
+        self.focal_point[0] + self.width / 2,
+        self.focal_point[1] + self.height / 2,
+        self.focal_point[0] - self.width / 2,
+        self.focal_point[1] + self.height / 2
+      ]
+    ]
+    self.points = self.utils.calculate_points_metadata(self.points, self.focal_point)
+    self.calculate_hitboxes_metadata()
+    self.transform(self.angle)
+    
+  def transform(self, angle: float):
+    # Driver code for transforming points using generic transform function
+    self.angle = angle
+    temp = self.utils.transform(self.focal_point, self.angle, self.points, self.hitboxes)
+    self.points = temp[0]
+    self.hitboxes = temp[1]
+  
+  def calculate_hitboxes_metadata(self):
+    # Same as points metadata generation, but iterate throught every hitbox
+    for i in range(len(self.hitboxes)):
+      hitbox = self.utils.calculate_points_metadata(self.hitboxes[i], self.focal_point)
+      self.hitboxes[i] = hitbox
+
+  def move(self):
+    # Moves in the current direction by incrementing focal point with speed and recalculating points
+    temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
+    # # Get all X coordinates anc calc min and max
+    # xs = [self.points[i] for i in range(0, len(self.points) - 2, 2)]
+    # min_x = min(xs)
+    # max_x = max(xs)
+    # # Get all Y coordinates and calc min and max
+    # ys = [self.points[i] for i in range(1, len(self.points) - 2, 2)]
+    # min_y = min(ys)
+    # max_y = max(ys)
+    # Check if the move will resolve in ship being out of bound
+    # If not outside bounds then move in direction
+    self.focal_point[0] = temp[0]
+    self.focal_point[1] = temp[1]
+    self.transform(self.angle)
+
+  def draw(self):
+    # Draws the bullet
+    self.canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
+
 
 class Ship:
   # Generic ship class, with functions like tilt
