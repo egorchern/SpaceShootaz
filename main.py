@@ -425,12 +425,15 @@ class Ship:
     
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
-  def __init__(self, main_window):
+  def __init__(self, main_window: tk.Tk, config: dict):
     self.canvas_dimensions = {
       "x": 1000,
       "y" : 850
     }
     self.main_window = main_window
+    self.config = config
+    self.controls = self.config.get("controls")
+    self.game_config = self.config.get("game")
     self.canvas = tk.Canvas(
       master=main_window,
       width=self.canvas_dimensions.get("x"),
@@ -455,52 +458,16 @@ class Game:
     self.player_bullet_height = 20
     self.player_bullet_speed_per_second = 500
     self.player_color = "#41bfff"
-    self.display_hitboxes = False
+    self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
     # Initialize player ship object
     self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions, self.player_speed_per_second, self.display_hitboxes, self.player_bullet_width, self.player_bullet_height, self.player_bullet_speed_per_second, self.player_color)
     # Bind events
-    self.parse_config()
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
-  
-  def create_new_config(self):
-    # Creates a new config.ini file with standard settings below
-    parser = configparser.ConfigParser()
-    parser.add_section("IDENTITY")
-    parser.set("IDENTITY", "Name", "Bob the Builder")
-    parser.add_section("CONTROLS")
-    parser.set("CONTROLS", "Move", "w")
-    parser.set("CONTROLS", "Pause/Unpause", "space")
-    parser.set("CONTROLS", "Boss_key", "p")
-    file = open("config.ini", "w")
-    parser.write(file)
-    file.close()
-
-  def parse_config(self):
-    # Checks whether there is a config file
-    file_exists = pathlib.Path("config.ini").exists()
-    if not file_exists:
-      # If no config, create new and read again
-      self.create_new_config()
-      self.parse_config()
-    else:
-      parser = configparser.ConfigParser()
-      parser.read("config.ini")
-      self.controls = {}
-      # Parse config by sections
-      for sect in parser.sections():
-        for k, v in parser.items(sect):
-          if sect == "IDENTITY":
-            self.identity = v
-          elif sect == "CONTROLS":
-            # Tkinter treats space characters as " " thats why it is here
-            if v == "space":
-              v = " "
-            self.controls[k] = v
   
   def handle_timed_events(self):
     # TODO 
@@ -554,6 +521,7 @@ class Game:
     self.next_frame_after_id = 0
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 50 bold", text="Paused")
 
+
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
   def __init__(self):
@@ -574,9 +542,54 @@ class Application:
     self.main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}")
     self.main_window.configure(bg='white')
     self.main_window.resizable(False, False)
+    self.parse_config()
     self.on_app_state_change()
     self.main_window.mainloop()
 
+  def create_new_config(self):
+    # Creates a new config.ini file with standard settings below
+    parser = configparser.ConfigParser()
+    parser.add_section("IDENTITY")
+    parser.set("IDENTITY", "Name", "Bob the Builder")
+    parser.add_section("GAME")
+    parser.set("GAME", "Display_Hitboxes", "False")
+    parser.add_section("CONTROLS")
+    parser.set("CONTROLS", "Move", "w")
+    parser.set("CONTROLS", "Pause/Unpause", "space")
+    parser.set("CONTROLS", "Boss_Key", "p")
+    file = open("config.ini", "w")
+    parser.write(file)
+    file.close()
+
+  def parse_config(self):
+    # Checks whether there is a config file
+    file_exists = pathlib.Path("config.ini").exists()
+    if not file_exists:
+      # If no config, create new and read again
+      self.create_new_config()
+      self.parse_config()
+    else:
+      parser = configparser.ConfigParser()
+      parser.read("config.ini")
+      self.config = {}
+      controls = {}
+      game_config = {}
+      # Parse config by sections
+      for sect in parser.sections():
+        for k, v in parser.items(sect):
+          if sect == "IDENTITY":
+            self.config["identity"] = v
+          elif sect == "GAME":
+            game_config[k] = v
+          elif sect == "CONTROLS":
+            # Tkinter treats space characters as " " thats why it is here
+            if v == "space":
+              v = " "
+            controls[k] = v
+
+      self.config["controls"] = controls
+      self.config["game"] = game_config
+  
   def on_app_state_change(self):
     # Destroy children widgets to reset the window on state change
     list = self.main_window.grid_slaves()
@@ -584,9 +597,10 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      game = Game(self.main_window)
+      game = Game(self.main_window, self.config)
     pass
-
+  
+  
 
 def main():
   global utils
