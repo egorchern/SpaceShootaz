@@ -227,7 +227,23 @@ class Bullet:
 
 class Ship:
   # Generic ship class, with functions like tilt
-  def __init__(self, canvas: tk.Canvas, width: int, height: int, focal_point: list, angle: float, color: str, fps: int, canvas_dimensions: dict, speed_per_second: int):
+  def __init__(
+      self,
+      canvas: tk.Canvas,
+      width: int,
+      height: int,
+      focal_point: list,
+      angle: float,
+      color: str,
+      fps: int,
+      canvas_dimensions: dict,
+      speed_per_second: int,
+      display_hitboxes: bool,
+      bullet_width: int,
+      bullet_height: int,
+      bullet_speed_per_second: int,
+      bullet_color: str
+    ):
     self.canvas = canvas
     self.canvas_dimensions = canvas_dimensions
     self.ship_width = width
@@ -239,11 +255,17 @@ class Ship:
     self.body_height_percentage = 0.45
     self.head_width_percentage = 0.3
     self.wing_flap_width_percentage = 0.4
+    self.fps = fps
     self.angle = angle
     self.utils = Utilities()
     self.color = color
-    self.display_hitboxes = True
-    # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]]
+    self.bullet_width = bullet_width
+    self.bullet_height = bullet_height
+    self.bullet_speed = bullet_speed_per_second / fps
+    self.display_hitboxes = display_hitboxes
+    self.bullet_color = bullet_color
+    self.bullet_list = []
+    # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]], last two are metadata
     self.points = [
       self.focal_point[0],
       self.focal_point[1] - self.top_ship_section_percentage * height,
