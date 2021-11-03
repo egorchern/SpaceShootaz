@@ -180,6 +180,7 @@ class Utilities:
     points.append(angles)
     return points
   
+
 class Bullet:
   # Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation
   def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, angle, fps, color, display_hitboxes):
@@ -455,6 +456,8 @@ class Game:
     self.player_bullet_speed_per_second = 500
     self.player_color = "#41bfff"
     self.display_hitboxes = False
+    # Used for determining state of game (paused or not) and for pausing the canvas after
+    self.next_frame_after_id = 0
     # Initialize player ship object
     self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions, self.player_speed_per_second, self.display_hitboxes, self.player_bullet_width, self.player_bullet_height, self.player_bullet_speed_per_second, self.player_color)
     # Bind events
@@ -462,7 +465,7 @@ class Game:
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.bind("<Button-1>", self.on_click)
-    self.canvas.after(self.ms_interval, self.on_frame)
+    self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
   
   def create_new_config(self):
     # Creates a new config.ini file with standard settings below
@@ -471,7 +474,7 @@ class Game:
     parser.set("IDENTITY", "Name", "Bob the Builder")
     parser.add_section("CONTROLS")
     parser.set("CONTROLS", "Move", "w")
-    parser.set("CONTROLS", "Pause", "space")
+    parser.set("CONTROLS", "Pause/Unpause", "space")
     parser.set("CONTROLS", "Boss_key", "p")
     file = open("config.ini", "w")
     parser.write(file)
@@ -515,7 +518,7 @@ class Game:
       self.frame_counter = 1
       self.seconds_elapsed += 1
     
-    self.canvas.after(self.ms_interval, self.on_frame)
+    self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
     pass
 
   def on_cursor_move(self, event):
@@ -530,14 +533,32 @@ class Game:
     key = event.char
     if self.controls.get("move") == key:
       self.player.move()
+    elif self.controls.get("pause/unpause") == key:
+      # If game is paused, resume
+      if self.next_frame_after_id == 0:
+        self.resume()
+      # If not paused, pause
+      else:
+        self.pause()
   
   def on_click(self, event):
     self.player.shoot_bullet()
-    
+  
+  def resume(self):
+    # Assign next after id and assign after
+    self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
+
+  def pause(self):
+    # Cancel canvas after and assign after id = 0
+    self.canvas.after_cancel(self.next_frame_after_id)
+    self.next_frame_after_id = 0
+    self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 50 bold", text="Paused")
+
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
   def __init__(self):
     pass
+
 
 class Application: 
   # Class for the whole application, contains tkinter top window and etc.
