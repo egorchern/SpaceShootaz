@@ -333,6 +333,10 @@ class Ship:
       self.focal_point[1] = temp[1]
       self.transform(self.angle)
   
+  def shoot_bullet(self, focal_point, angle):
+    bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, focal_point.copy(), self.bullet_speed, angle, self.fps, self.bullet_color)
+    self.bullet_list.append(bullet)
+    
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
     for i in range(len(self.hitboxes)):
@@ -354,12 +358,23 @@ class Ship:
       self.canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
       self.canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
 
+  def handle_bullets(self):
+    for i in range(len(self.bullet_list)):
+      bullet = self.bullet_list[i]
+      bullet.move()
+
   def draw(self):
+    # Draw ship
     self.canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
+    # Driver code for drawing all bullets
+    for i in range(len(self.bullet_list)):
+      bullet = self.bullet_list[i]
+      bullet.draw()
+    # If hitboxes display is on, display hitboxes of the ship
     if self.display_hitboxes:
       self.draw_hitboxes()
     
-
+    
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
   def __init__(self, main_window):
@@ -386,14 +401,19 @@ class Game:
     self.angle = 0
     self.player_width = 45
     self.player_height = 50
-    self.player_speed_per_second = 500
+    self.player_speed_per_second = 400
+    self.player_bullet_width = 10
+    self.player_bullet_height = 25
+    self.player_bullet_speed_per_second = 500
     self.player_color = "#41bfff"
+    self.display_hitboxes = True
     # Initialize player ship object
-    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions, self.player_speed_per_second)
+    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions, self.player_speed_per_second, self.display_hitboxes, self.player_bullet_width, self.player_bullet_height, self.player_bullet_speed_per_second, self.player_color)
     # Bind events
     self.parse_config()
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
+    self.canvas.bind("<Button-1>", self.on_click)
     self.canvas.after(self.ms_interval, self.on_frame)
   
   def create_new_config(self):
@@ -434,12 +454,14 @@ class Game:
   def on_frame(self):
     # Deletes everything from the canvas
     self.canvas.delete("all")
+    self.player.handle_bullets()
     self.player.draw()
-    self.canvas.after(self.ms_interval, self.on_frame)
-    print(self.frame_counter)
+    
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
       self.frame_counter = 1
+      
+    self.canvas.after(self.ms_interval, self.on_frame)
     pass
 
   def on_cursor_move(self, event):
@@ -455,6 +477,8 @@ class Game:
     if self.controls.get("move") == key:
       self.player.move()
   
+  def on_click(self, event):
+    self.player.shoot_bullet(self.player.focal_point, self.player.angle)
     
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
