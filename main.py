@@ -6,6 +6,8 @@ import configparser
 import pathlib
 
 
+utils = 0
+# Points have last two elements as metadata, so thats why it is len(points) - 2
 class Utilities:
   # Class for utility functions, such as resolve angle and resolve point
   def __init__(self):
@@ -512,7 +514,10 @@ class Application:
       game = Game(self.main_window)
     pass
 
+
 def main():
+  global utils
+  utils = Utilities()
   app = Application()
   
   
