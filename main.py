@@ -119,6 +119,23 @@ class Utilities:
       # If inside bounds
       return False
   
+  def is_fully_out_of_bounds(self, obj_min_x: float, obj_max_x: float, obj_min_y: float, obj_max_y: float, bounds_max_x: float, bounds_max_y: float) -> bool:
+    # Similar to is_out_of_bounds but checks if object is completely out of viewable space
+    if obj_max_x < 0:
+      # If out from left
+      return True
+    elif obj_min_x > bounds_max_x:
+      # If out from right
+      return True
+    elif obj_max_y < 0:
+      # If out from top
+      return True
+    elif obj_min_y > bounds_max_y:
+      # If out from bottom
+      return True
+    else:
+      return False
+
   def transform(self, focal_point, angle, points, hitboxes):
     # Tilts points by given angle 
     for i in range(0, len(points) - 2, 2):
