@@ -5,7 +5,6 @@ import math
 import configparser
 import pathlib
 
-
 utils = 0
 # Points have last two elements as metadata, so thats why it is len(points) - 2
 class Utilities:
@@ -100,6 +99,17 @@ class Utilities:
   def calculate_length(self, x1: float, y1: float, x2: float, y2: float) -> float:
     # calculates length between two points
     return math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
+  
+  def get_bounds_info(self, points: list):
+    xs = [points[i] for i in range(0, len(points) - 2, 2)]
+    # Get all X coordinates anc calc min and max
+    min_x = min(xs)
+    max_x = max(xs)
+    # Get all Y coordinates and calc min and max
+    ys = [points[i] for i in range(1, len(points) - 2, 2)]
+    min_y = min(ys)
+    max_y = max(ys)
+    return [min_x, max_x, min_y, max_y]
 
   def is_out_of_bounds(self, obj_min_x: float, obj_max_x: float, obj_min_y: float, obj_max_y: float, bounds_max_x: float, bounds_max_y: float) -> bool:
     # Calculates if the object is out of bounds using the box model
@@ -171,7 +181,7 @@ class Utilities:
   
 class Bullet:
   # Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation
-  def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, angle, fps, color):
+  def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, angle, fps, color, display_hitboxes):
     self.canvas = canvas
     self.canvas_dimensions = canvas_dimensions
     self.width = width
@@ -179,7 +189,7 @@ class Bullet:
     self.focal_point = focal_point
     self.speed = speed
     self.angle = angle
-    self.utils = Utilities()
+    self.display_hitboxes = display_hitboxes
     self.color = color
     # Double sided triangle
     self.points = [
@@ -205,43 +215,44 @@ class Bullet:
         self.focal_point[1] + self.height / 2
       ]
     ]
-    self.points = self.utils.calculate_points_metadata(self.points, self.focal_point)
+    self.points = utils.calculate_points_metadata(self.points, self.focal_point)
     self.calculate_hitboxes_metadata()
     self.transform(self.angle)
     
   def transform(self, angle: float):
     # Driver code for transforming points using generic transform function
     self.angle = angle
-    temp = self.utils.transform(self.focal_point, self.angle, self.points, self.hitboxes)
+    temp = utils.transform(self.focal_point, self.angle, self.points, self.hitboxes)
     self.points = temp[0]
     self.hitboxes = temp[1]
   
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
     for i in range(len(self.hitboxes)):
-      hitbox = self.utils.calculate_points_metadata(self.hitboxes[i], self.focal_point)
+      hitbox = utils.calculate_points_metadata(self.hitboxes[i], self.focal_point)
       self.hitboxes[i] = hitbox
 
   def move(self):
     # Moves in the current direction by incrementing focal point with speed and recalculating points
-    temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
-    # # Get all X coordinates anc calc min and max
-    # xs = [self.points[i] for i in range(0, len(self.points) - 2, 2)]
-    # min_x = min(xs)
-    # max_x = max(xs)
-    # # Get all Y coordinates and calc min and max
-    # ys = [self.points[i] for i in range(1, len(self.points) - 2, 2)]
-    # min_y = min(ys)
-    # max_y = max(ys)
-    # Check if the move will resolve in ship being out of bound
-    # If not outside bounds then move in direction
+    temp = utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
     self.focal_point[0] = temp[0]
     self.focal_point[1] = temp[1]
     self.transform(self.angle)
+  
+  def draw_hitboxes(self):
+    # Draws the box via lines
+    for hitbox in self.hitboxes:
+      self.canvas.create_line(hitbox[0], hitbox[1], hitbox[2], hitbox[3])
+      self.canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
+      self.canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
+      self.canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
 
   def draw(self):
     # Draws the bullet
     self.canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
+    # If hitboxes display is on, display hitboxes of the ship
+    if self.display_hitboxes:
+      self.draw_hitboxes()
 
 
 class Ship:
@@ -276,13 +287,13 @@ class Ship:
     self.wing_flap_width_percentage = 0.4
     self.fps = fps
     self.angle = angle
-    self.utils = Utilities()
     self.color = color
     self.bullet_width = bullet_width
     self.bullet_height = bullet_height
     self.bullet_speed = bullet_speed_per_second / fps
     self.display_hitboxes = display_hitboxes
     self.bullet_color = bullet_color
+    self.shot_offset = 5
     self.bullet_list = []
     # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]], last two are metadata
     self.points = [
@@ -329,43 +340,37 @@ class Ship:
       ]
     ]
     # Calculate lengths angles from focal to points, used in tilt point calculation
-    self.points = self.utils.calculate_points_metadata(self.points, self.focal_point)
+    self.points = utils.calculate_points_metadata(self.points, self.focal_point)
     self.calculate_hitboxes_metadata()
     self.transform(self.angle)
 
   def move(self):
     # Moves in the current direction by incrementing focal point with speed and recalculating points
-    temp = self.utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
-    # Get all X coordinates anc calc min and max
-    xs = [self.points[i] for i in range(0, len(self.points) - 2, 2)]
-    min_x = min(xs)
-    max_x = max(xs)
-    # Get all Y coordinates and calc min and max
-    ys = [self.points[i] for i in range(1, len(self.points) - 2, 2)]
-    min_y = min(ys)
-    max_y = max(ys)
+    temp = utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
+    bounds_info = utils.get_bounds_info(self.points)
     # Check if the move will resolve in ship being out of bounds
-    out_of_bounds = self.utils.is_out_of_bounds(min_x, max_x, min_y, max_y, self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
+    out_of_bounds = utils.is_out_of_bounds(bounds_info[0], bounds_info[1], bounds_info[2], bounds_info[3], self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
     if not out_of_bounds:
       # If not outside bounds then move in direction
       self.focal_point[0] = temp[0]
       self.focal_point[1] = temp[1]
       self.transform(self.angle)
   
-  def shoot_bullet(self, focal_point, angle):
-    bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, focal_point.copy(), self.bullet_speed, angle, self.fps, self.bullet_color)
+  def shoot_bullet(self):
+    temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
+    bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
     self.bullet_list.append(bullet)
     
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
     for i in range(len(self.hitboxes)):
-      hitbox = self.utils.calculate_points_metadata(self.hitboxes[i], self.focal_point)
+      hitbox = utils.calculate_points_metadata(self.hitboxes[i], self.focal_point)
       self.hitboxes[i] = hitbox
   
   def transform(self, angle: float):
     # Driver code for transforming points using generic transform function
     self.angle = angle
-    temp = self.utils.transform(self.focal_point, self.angle, self.points, self.hitboxes)
+    temp = utils.transform(self.focal_point, self.angle, self.points, self.hitboxes)
     self.points = temp[0]
     self.hitboxes = temp[1]
 
@@ -377,7 +382,25 @@ class Ship:
       self.canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
       self.canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
 
+  def delete_redundant_bullets(self):
+    # Deletes entries from bullet list if the bullet is completely out of field
+    delete_indexes = []
+    for bullet_index in range(len(self.bullet_list)):
+      bullet = self.bullet_list[bullet_index]
+      bounds_info = utils.get_bounds_info(bullet.points)
+      fully_out_of_bounds = utils.is_fully_out_of_bounds(bounds_info[0], bounds_info[1], bounds_info[2], bounds_info[3], self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
+      if fully_out_of_bounds:
+        delete_indexes.append(bullet_index)
+    
+    for i in range(len(delete_indexes)):
+      delete_index = delete_indexes[i]
+      self.bullet_list.pop(delete_index)
+      for j in range(len(delete_indexes)):
+        if delete_indexes[j] > delete_index:
+          delete_indexes[j] -= 1
+
   def handle_bullets(self):
+    self.delete_redundant_bullets()
     for i in range(len(self.bullet_list)):
       bullet = self.bullet_list[i]
       bullet.move()
@@ -413,19 +436,20 @@ class Game:
     self.canvas.grid(padx=5)
     self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
     self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
-    self.utils = Utilities()
-    self.fps = 60
+    # Tkinter can't handle 60 fps reliably
+    self.fps = 45
     self.ms_interval = math.floor(1000 / self.fps)
     self.frame_counter = 1
+    self.seconds_elapsed = 0
     self.angle = 0
     self.player_width = 45
     self.player_height = 50
     self.player_speed_per_second = 400
     self.player_bullet_width = 10
-    self.player_bullet_height = 25
+    self.player_bullet_height = 20
     self.player_bullet_speed_per_second = 500
     self.player_color = "#41bfff"
-    self.display_hitboxes = True
+    self.display_hitboxes = False
     # Initialize player ship object
     self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions, self.player_speed_per_second, self.display_hitboxes, self.player_bullet_width, self.player_bullet_height, self.player_bullet_speed_per_second, self.player_color)
     # Bind events
@@ -469,17 +493,23 @@ class Game:
             if v == "space":
               v = " "
             self.controls[k] = v
-      
+  
+  def handle_timed_events(self):
+    # TODO 
+    pass
+
   def on_frame(self):
     # Deletes everything from the canvas
     self.canvas.delete("all")
     self.player.handle_bullets()
     self.player.draw()
-    
+
+    # Increase ingame time variables
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
       self.frame_counter = 1
-      
+      self.seconds_elapsed += 1
+    
     self.canvas.after(self.ms_interval, self.on_frame)
     pass
 
@@ -487,7 +517,7 @@ class Game:
     # Adjusts angle variable depending on where user points the cursor
     x = event.x
     y = event.y
-    self.angle = self.utils.resolve_angle(self.player.focal_point[0], self.player.focal_point[1], x, y)
+    self.angle = utils.resolve_angle(self.player.focal_point[0], self.player.focal_point[1], x, y)
     self.player.transform(self.angle)
   
   def on_key_press(self, event):
@@ -497,7 +527,7 @@ class Game:
       self.player.move()
   
   def on_click(self, event):
-    self.player.shoot_bullet(self.player.focal_point, self.player.angle)
+    self.player.shoot_bullet()
     
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
@@ -538,7 +568,6 @@ def main():
   app = Application()
   
   
-
 
 if __name__ == "__main__":
   main()
