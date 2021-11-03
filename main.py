@@ -101,6 +101,7 @@ class Utilities:
     return math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
   
   def get_bounds_info(self, points: list):
+    # Returns information about object bounds
     xs = [points[i] for i in range(0, len(points) - 2, 2)]
     # Get all X coordinates anc calc min and max
     min_x = min(xs)
@@ -389,18 +390,22 @@ class Ship:
       bullet = self.bullet_list[bullet_index]
       bounds_info = utils.get_bounds_info(bullet.points)
       fully_out_of_bounds = utils.is_fully_out_of_bounds(bounds_info[0], bounds_info[1], bounds_info[2], bounds_info[3], self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
+      # Check if the bullet is completely out of bounds
       if fully_out_of_bounds:
         delete_indexes.append(bullet_index)
     
+    # Delete redundant bullets from bullet list
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
       self.bullet_list.pop(delete_index)
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
       for j in range(len(delete_indexes)):
         if delete_indexes[j] > delete_index:
           delete_indexes[j] -= 1
 
   def handle_bullets(self):
     self.delete_redundant_bullets()
+    # Move bullets 
     for i in range(len(self.bullet_list)):
       bullet = self.bullet_list[i]
       bullet.move()
