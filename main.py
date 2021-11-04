@@ -271,11 +271,13 @@ class Ship:
       canvas_dimensions: dict,
       speed_per_second: int,
       display_hitboxes: bool,
+      display_hitbars: bool,
       bullet_width: int,
       bullet_height: int,
       bullet_speed_per_second: int,
       bullet_color: str,
-      shoot_rate_per_second: int
+      shoot_rate_per_second: int,
+      health: int
     ):
     self.canvas = canvas
     self.canvas_dimensions = canvas_dimensions
@@ -295,8 +297,11 @@ class Ship:
     self.bullet_height = bullet_height
     self.bullet_speed = bullet_speed_per_second / fps
     self.display_hitboxes = display_hitboxes
+    self.display_hitbars = display_hitbars
     self.bullet_color = bullet_color
     self.shot_offset = 5
+    self.health = health
+    self.max_health = self.health
     self.bullet_list = []
     self.shoot_rate = fps / shoot_rate_per_second
     self.last_shot_at = [-fps, 0]
@@ -370,8 +375,7 @@ class Ship:
       temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
       bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
       self.bullet_list.append(bullet)
-    else:
-      print("fa")
+    
     
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
@@ -393,6 +397,21 @@ class Ship:
       self.canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
       self.canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
       self.canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
+
+  def draw_healthbar(self):
+    healthbar_height = 10
+    healthbar_offset = 5
+    health_present_color = "#44ff00"
+    health_absent_color = "#ff0000"
+    bounds_info = utils.get_bounds_info(self.points)
+    missing_health = self.max_health - self.health
+    missing_health_percentage = missing_health / self.max_health
+    # First, create present health rectangle using min_x and min_y as top left corner of rectangle, and max_x and min_y + healthbar_height as right bottom corner
+    self.canvas.create_rectangle(bounds_info[0], bounds_info[2] - healthbar_offset - healthbar_height, bounds_info[1], bounds_info[2] - healthbar_offset, fill= health_present_color)
+    # Only draw missing health if there is missing health
+    if missing_health > 0:
+      # Then, create missing health rectangle, calcl difference in min_x and max_x and multiply by missing_health percent to find needed width of missing health portion. Draw over present health bar
+      self.canvas.create_rectangle(bounds_info[1] - missing_health_percentage * (bounds_info[1] - bounds_info[0]), bounds_info[2] - healthbar_offset - healthbar_height, bounds_info[1], bounds_info[2] - healthbar_offset, fill=health_absent_color)
 
   def delete_redundant_bullets(self):
     # Deletes entries from bullet list if the bullet is completely out of field
@@ -431,6 +450,8 @@ class Ship:
     # If hitboxes display is on, display hitboxes of the ship
     if self.display_hitboxes:
       self.draw_hitboxes()
+    if self.display_hitbars:
+      self.draw_healthbar()
     
     
 class Game:
@@ -469,7 +490,9 @@ class Game:
     self.player_bullet_speed_per_second = 500
     self.player_color = "#41bfff"
     self.player_shoot_rate_per_second = 2
+    self.player_health = 5
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
+    self.display_hitbars = self.game_config.get("display_hitbars") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
     # Initialize player ship object
@@ -484,11 +507,13 @@ class Game:
       self.canvas_dimensions,
       self.player_speed_per_second,
       self.display_hitboxes,
+      self.display_hitbars,
       self.player_bullet_width,
       self.player_bullet_height,
       self.player_bullet_speed_per_second,
       self.player_color,
-      self.player_shoot_rate_per_second
+      self.player_shoot_rate_per_second,
+      self.player_health
     )
     # Bind events
     self.canvas.bind("<Motion>", self.on_cursor_move)
@@ -580,6 +605,7 @@ class Application:
     parser.set("IDENTITY", "Name", "Bob the Builder")
     parser.add_section("GAME")
     parser.set("GAME", "Display_Hitboxes", "False")
+    parser.set("GAME", "Display_Hitbars", "True")
     parser.add_section("CONTROLS")
     parser.set("CONTROLS", "Move", "w")
     parser.set("CONTROLS", "Pause/Unpause", "space")
