@@ -276,7 +276,8 @@ class Ship:
       bullet_height: int,
       bullet_speed_per_second: int,
       bullet_color: str,
-      shoot_rate_per_second: int,
+      bullet_damage: int,
+      shoot_rate_per_second: float,
       health: int
     ):
     self.canvas = canvas
@@ -354,12 +355,15 @@ class Ship:
     self.calculate_hitboxes_metadata()
     self.transform(self.angle)
 
+  def calc_bounds_info(self):
+    self.bounds_info = utils.get_bounds_info(self.points)
+
   def move(self):
     # Moves in the current direction by incrementing focal point with speed and recalculating points
     temp = utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
-    bounds_info = utils.get_bounds_info(self.points)
+    
     # Check if the move will resolve in ship being out of bounds
-    out_of_bounds = utils.is_out_of_bounds(bounds_info[0], bounds_info[1], bounds_info[2], bounds_info[3], self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
+    out_of_bounds = utils.is_out_of_bounds(self.bounds_info[0], self.bounds_info[1], self.bounds_info[2], self.bounds_info[3], self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
     if not out_of_bounds:
       # If not outside bounds then move in direction
       self.focal_point[0] = temp[0]
@@ -380,7 +384,6 @@ class Ship:
       temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
       bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
       self.bullet_list.append(bullet)
-    
     
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
@@ -408,15 +411,14 @@ class Ship:
     healthbar_offset = 5
     health_present_color = "#44ff00"
     health_absent_color = "#ff0000"
-    bounds_info = utils.get_bounds_info(self.points)
     missing_health = self.max_health - self.health
     missing_health_percentage = missing_health / self.max_health
     # First, create present health rectangle using min_x and min_y as top left corner of rectangle, and max_x and min_y + healthbar_height as right bottom corner
-    self.canvas.create_rectangle(bounds_info[0], bounds_info[2] - healthbar_offset - healthbar_height, bounds_info[1], bounds_info[2] - healthbar_offset, fill= health_present_color)
+    self.canvas.create_rectangle(self.bounds_info[0], self.bounds_info[2] - healthbar_offset - healthbar_height, self.bounds_info[1], self.bounds_info[2] - healthbar_offset, fill= health_present_color)
     # Only draw missing health if there is missing health
     if missing_health > 0:
       # Then, create missing health rectangle, calcl difference in min_x and max_x and multiply by missing_health percent to find needed width of missing health portion. Draw over present health bar
-      self.canvas.create_rectangle(bounds_info[1] - missing_health_percentage * (bounds_info[1] - bounds_info[0]), bounds_info[2] - healthbar_offset - healthbar_height, bounds_info[1], bounds_info[2] - healthbar_offset, fill=health_absent_color)
+      self.canvas.create_rectangle(self.bounds_info[1] - missing_health_percentage * (self.bounds_info[1] - self.bounds_info[0]), self.bounds_info[2] - healthbar_offset - healthbar_height, self.bounds_info[1], self.bounds_info[2] - healthbar_offset, fill=health_absent_color)
 
   def delete_redundant_bullets(self):
     # Deletes entries from bullet list if the bullet is completely out of field
@@ -457,7 +459,11 @@ class Ship:
       self.draw_hitboxes()
     if self.display_hitbars:
       self.draw_healthbar()
-    
+  
+  def on_frame(self):
+    self.calc_bounds_info()
+    self.handle_bullets()
+    self.draw()
     
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
@@ -493,9 +499,12 @@ class Game:
     self.player_bullet_width = 10
     self.player_bullet_height = 20
     self.player_bullet_speed_per_second = 500
+    self.player_bullet_damage = 1
     self.player_color = "#41bfff"
-    self.player_shoot_rate_per_second = 2
+    self.player_shoot_rate_per_second = 2.5
     self.player_health = 5
+    self.enemy_ship_spawn_interval_seconds = 10
+    self.enemy_ship_health = 2
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
@@ -517,6 +526,7 @@ class Game:
       self.player_bullet_height,
       self.player_bullet_speed_per_second,
       self.player_color,
+      self.player_bullet_damage,
       self.player_shoot_rate_per_second,
       self.player_health
     )
@@ -533,14 +543,15 @@ class Game:
   def on_frame(self):
     # Deletes everything from the canvas
     self.canvas.delete("all")
-    self.player.handle_bullets()
-    self.player.draw()
+    # Call onframe function of player
+    self.player.on_frame()
 
     # Increase ingame time variables
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
       self.frame_counter = 1
       self.seconds_elapsed += 1
+      self.handle_timed_events()
     
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
     pass
