@@ -274,7 +274,8 @@ class Ship:
       bullet_width: int,
       bullet_height: int,
       bullet_speed_per_second: int,
-      bullet_color: str
+      bullet_color: str,
+      shoot_rate_per_second: int
     ):
     self.canvas = canvas
     self.canvas_dimensions = canvas_dimensions
@@ -297,6 +298,8 @@ class Ship:
     self.bullet_color = bullet_color
     self.shot_offset = 5
     self.bullet_list = []
+    self.shoot_rate = fps / shoot_rate_per_second
+    self.last_shot_at = [-fps, 0]
     # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]], last two are metadata
     self.points = [
       self.focal_point[0],
@@ -358,10 +361,17 @@ class Ship:
       self.focal_point[1] = temp[1]
       self.transform(self.angle)
   
-  def shoot_bullet(self):
-    temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
-    bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
-    self.bullet_list.append(bullet)
+  def shoot_bullet(self, frame_counter: int, seconds_elapsed: int):
+    boundary = self.last_shot_at[0] + self.shoot_rate
+    if seconds_elapsed > self.last_shot_at[1]:
+      boundary = self.shoot_rate + self.last_shot_at[0] - self.fps
+    if frame_counter >= boundary:
+      self.last_shot_at = [frame_counter, seconds_elapsed]
+      temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
+      bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
+      self.bullet_list.append(bullet)
+    else:
+      print("fa")
     
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
@@ -458,11 +468,28 @@ class Game:
     self.player_bullet_height = 20
     self.player_bullet_speed_per_second = 500
     self.player_color = "#41bfff"
+    self.player_shoot_rate_per_second = 2
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
     # Initialize player ship object
-    self.player = Ship(self.canvas, self.player_width, self.player_height, [self.canvas_centre_x, self.canvas_centre_y], self.angle, self.player_color, self.fps, self.canvas_dimensions, self.player_speed_per_second, self.display_hitboxes, self.player_bullet_width, self.player_bullet_height, self.player_bullet_speed_per_second, self.player_color)
+    self.player = Ship(
+      self.canvas,
+      self.player_width,
+      self.player_height,
+      [self.canvas_centre_x, self.canvas_centre_y],
+      self.angle,
+      self.player_color,
+      self.fps,
+      self.canvas_dimensions,
+      self.player_speed_per_second,
+      self.display_hitboxes,
+      self.player_bullet_width,
+      self.player_bullet_height,
+      self.player_bullet_speed_per_second,
+      self.player_color,
+      self.player_shoot_rate_per_second
+    )
     # Bind events
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
@@ -509,7 +536,7 @@ class Game:
         self.pause()
   
   def on_click(self, event):
-    self.player.shoot_bullet()
+    self.player.shoot_bullet(self.frame_counter, self.seconds_elapsed)
   
   def resume(self):
     # Assign next after id and assign after
