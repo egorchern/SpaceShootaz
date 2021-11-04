@@ -367,10 +367,15 @@ class Ship:
       self.transform(self.angle)
   
   def shoot_bullet(self, frame_counter: int, seconds_elapsed: int):
+    # Check whether ship allowed to shoot
+    # Calculate min frame number needed to shoot
     boundary = self.last_shot_at[0] + self.shoot_rate
+    # If seconds don't match, then new second has started, different from recorded last shot frame num
     if seconds_elapsed > self.last_shot_at[1]:
+      # Adjust boundary frame number considering new second rollover
       boundary = self.shoot_rate + self.last_shot_at[0] - self.fps
     if frame_counter >= boundary:
+      # Set last shot, to work out whether allowed to shoot on next func call
       self.last_shot_at = [frame_counter, seconds_elapsed]
       temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
       bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
