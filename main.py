@@ -4,6 +4,7 @@ import tkinter as tk
 import math
 import configparser
 import pathlib
+import random
 
 utils = 0
 # Points have last two elements as metadata, so thats why it is len(points) - 2
@@ -305,7 +306,7 @@ class Ship:
     self.max_health = self.health
     self.bullet_list = []
     self.shoot_rate = fps / shoot_rate_per_second
-    self.last_shot_at = [-fps, 0]
+    self.last_shot_at = -self.fps
     # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]], last two are metadata
     self.points = [
       self.focal_point[0],
@@ -372,18 +373,16 @@ class Ship:
   
   def shoot_bullet(self, frame_counter: int, seconds_elapsed: int):
     # Check whether ship allowed to shoot
-    # Calculate min frame number needed to shoot
-    boundary = self.last_shot_at[0] + self.shoot_rate
-    # If seconds don't match, then new second has started, different from recorded last shot frame num
-    if seconds_elapsed > self.last_shot_at[1]:
-      # Adjust boundary frame number considering new second rollover
-      boundary = self.shoot_rate + self.last_shot_at[0] - self.fps
-    if frame_counter >= boundary:
+    temp = frame_counter + seconds_elapsed * self.fps
+
+    if temp > self.last_shot_at + self.shoot_rate:
       # Set last shot, to work out whether allowed to shoot on next func call
-      self.last_shot_at = [frame_counter, seconds_elapsed]
+      self.last_shot_at = temp
       temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
+      # Create new bullet obj and add to bullet list
       bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
       self.bullet_list.append(bullet)
+    
     
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
@@ -465,6 +464,7 @@ class Ship:
     self.handle_bullets()
     self.draw()
     
+
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
   def __init__(self, main_window: tk.Tk, config: dict):
@@ -503,7 +503,6 @@ class Game:
     self.player_color = "#41bfff"
     self.player_shoot_rate_per_second = 2.5
     self.player_health = 5
-    self.enemy_ship_spawn_interval_seconds = 10
     self.enemy_ship_spawn_interval_seconds = 5
     self.enemy_ship_health = 2
     self.enemy_ship_bullet_speed_per_second = 150
@@ -519,7 +518,7 @@ class Game:
     self.enemy_ship_shoot_rate_per_second_max = 0.8
     self.min_distance_between_bounds = 5
     self.enemy_ships_list = []
-    self.max_enemies_on_screen = 1
+    self.max_enemies_on_screen = 2
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
@@ -609,7 +608,7 @@ class Game:
         self.enemy_ship_health
       )
       self.enemy_ships_list.append(enemy_ship)
-      
+
 
   def handle_timed_events(self):
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
