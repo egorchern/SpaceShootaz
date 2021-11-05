@@ -636,6 +636,13 @@ class Game:
     
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
     pass
+  
+  def point_enemy_ships_to_player(self):
+    # Points all enemy ship towards player
+    for enemy_ship in self.enemy_ships_list:
+      # Calculate angle from enemy ship to the player ship
+      angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
+      enemy_ship.transform(angle_to_player)
 
   def on_cursor_move(self, event):
     # Adjusts angle variable depending on where user points the cursor
@@ -643,6 +650,7 @@ class Game:
     y = event.y
     self.angle = utils.resolve_angle(self.player.focal_point[0], self.player.focal_point[1], x, y)
     self.player.transform(self.angle)
+    self.point_enemy_ships_to_player()
   
   def on_key_press(self, event):
     # Handles key presses
