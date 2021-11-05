@@ -551,16 +551,82 @@ class Game:
     self.canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
   
+  def is_point_usable(self, x, y):
+    # Check that point generated is valid, i.e  not occupied by anything
+    # Check that point is not within no spawn radius around player
+    distance_to_player = utils.calculate_length(x, y, self.player.focal_point[0], self.player.focal_point[1])
+    if distance_to_player < self.no_enemy_spawn_around_player_radius + max(self.player.ship_width, self.player.ship_height):
+      return False
+    
+    # Check that point is not occupied by any other enemy ship
+    for enemy_ship in self.enemy_ships_list:
+      distance_to_enemy_ship = utils.calculate_length(x, y, enemy_ship.focal_point[0], enemy_ship.focal_point[1])
+      if distance_to_enemy_ship < max(enemy_ship.ship_width, enemy_ship.ship_height) + self.min_distance_between_bounds:
+        return False
+
+    return True
+
+  def generate_random_point(self):
+    # Generate a random point not occupied by anything
+    min_x = math.ceil(self.enemy_ship_width / 2 + self.min_distance_between_bounds)
+    max_x = math.ceil(self.canvas_dimensions.get("x") - self.enemy_ship_width / 2 - self.min_distance_between_bounds)
+    min_y = math.ceil(self.enemy_ship_height / 2 + self.min_distance_between_bounds)
+    max_y = math.ceil(self.canvas_dimensions.get("y") - self.enemy_ship_height / 2 - self.min_distance_between_bounds)
+    point_x = random.randint(min_x, max_x)
+    point_y = random.randint(min_y, max_y)
+    # While point is occupied by something, keep generating new random points
+    while self.is_point_usable(point_x, point_y) == False:
+      point_x = random.randint(min_x, max_x)
+      point_y = random.randint(min_y, max_y)
+
+    return [point_x, point_y]
+      
+  def spawn_enemy_ship(self):
+    # Spawn a new enemy ship in a valid random position
+    if len(self.enemy_ships_list) < self.max_enemies_on_screen:
+      
+      spawn_point = self.generate_random_point()
+      # Calc angle to player, to avoid bug with user not moving mouse and ships are forever stuck shooting away from player
+      angle_to_player = utils.resolve_angle(spawn_point[0], spawn_point[1], self.player.focal_point[0], self.player.focal_point[1])
+      enemy_ship = Ship(
+        self.canvas,
+        self.enemy_ship_width,
+        self.enemy_ship_height,
+        spawn_point,
+        angle_to_player,
+        self.enemy_ship_color,
+        self.fps,
+        self.canvas_dimensions,
+        self.enemy_ship_speed_per_second,
+        self.display_hitboxes,
+        self.display_hitbars,
+        self.enemy_ship_bullet_width,
+        self.enemy_ship_bullet_height,
+        self.enemy_ship_bullet_speed_per_second,
+        self.enemy_ship_color,
+        self.enemy_ship_bullet_damage,
+        random.uniform(self.enemy_ship_shoot_rate_per_second_min, self.enemy_ship_shoot_rate_per_second_max),
+        self.enemy_ship_health
+      )
+      self.enemy_ships_list.append(enemy_ship)
+      
+
   def handle_timed_events(self):
-    # TODO 
+    if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
+      self.spawn_enemy_ship()
     pass
+
+  def handle_enemy_ships(self):
+    for enemy_ship in self.enemy_ships_list:
+      enemy_ship.shoot_bullet(self.frame_counter, self.seconds_elapsed)
+      enemy_ship.on_frame()
 
   def on_frame(self):
     # Deletes everything from the canvas
     self.canvas.delete("all")
     # Call onframe function of player
     self.player.on_frame()
-
+    self.handle_enemy_ships()
     # Increase ingame time variables
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
