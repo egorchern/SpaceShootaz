@@ -504,7 +504,22 @@ class Game:
     self.player_shoot_rate_per_second = 2.5
     self.player_health = 5
     self.enemy_ship_spawn_interval_seconds = 10
+    self.enemy_ship_spawn_interval_seconds = 5
     self.enemy_ship_health = 2
+    self.enemy_ship_bullet_speed_per_second = 150
+    self.enemy_ship_bullet_damage = 1
+    self.enemy_ship_color = "#ff0fcb"
+    self.enemy_ship_width = 50
+    self.enemy_ship_height = 55
+    self.enemy_ship_bullet_width = 8
+    self.enemy_ship_bullet_height = 18
+    self.no_enemy_spawn_around_player_radius = 300
+    self.enemy_ship_speed_per_second = 100
+    self.enemy_ship_shoot_rate_per_second_min = 0.5
+    self.enemy_ship_shoot_rate_per_second_max = 0.8
+    self.min_distance_between_bounds = 5
+    self.enemy_ships_list = []
+    self.max_enemies_on_screen = 1
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
