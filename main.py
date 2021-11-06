@@ -407,7 +407,7 @@ class Ship:
     self.points = utils.calculate_points_metadata(self.points, self.focal_point)
     self.calculate_hitboxes_metadata()
     self.transform(self.angle)
-
+  
   def shoot_valley(self, frame_counter: int, seconds_elapsed: int):
     # Shoots a valley of bullets_per_valley num of bullets
     # Check whether ship allowed to shoot
@@ -564,31 +564,6 @@ class Game:
     self.frame_counter = 1
     self.seconds_elapsed = 0
     self.angle = 0
-    self.player_width = 45
-    self.player_height = 50
-    self.player_speed_per_second = 400
-    self.player_bullet_width = 10
-    self.player_bullet_height = 20
-    self.player_bullet_speed_per_second = 500
-    self.player_bullet_damage = 1
-    self.player_color = "#41bfff"
-    self.player_shoot_rate_per_second = 2.5
-    self.player_health = 5
-    self.player_bullets_per_valley = 1
-    self.enemy_ship_spawn_interval_seconds = 1
-    self.enemy_ship_health = 2
-    self.enemy_ship_bullet_speed_per_second = 150
-    self.enemy_ship_bullet_damage = 1
-    self.enemy_ship_color = "#ff0fcb"
-    self.enemy_ship_width = 50
-    self.enemy_ship_height = 55
-    self.enemy_ship_bullet_width = 8
-    self.enemy_ship_bullet_height = 18
-    self.no_enemy_spawn_around_player_radius = 300
-    self.enemy_ship_speed_per_second = 100
-    self.enemy_ship_shoot_rate_per_second_min = 0.5
-    self.enemy_ship_shoot_rate_per_second_max = 0.7
-    self.enemy_ship_bullets_per_valley = 1
     self.min_distance_between_bounds = 5
     self.enemy_ships_list = []
     self.max_enemies_on_screen = 1
@@ -596,7 +571,18 @@ class Game:
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
-    # Initialize player ship object
+    # Call initial variables initializers
+    self.define_player_initial_variables()
+    self.define_enemy_initial_variables()
+    self.instantiate_player()
+    
+    # Bind events
+    self.canvas.bind("<Motion>", self.on_cursor_move)
+    self.main_window.bind("<Key>", self.on_key_press)
+    self.canvas.bind("<Button-1>", self.on_click)
+    self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
+
+  def instantiate_player(self):
     self.player = Ship(
       self.canvas,
       self.player_width,
@@ -618,12 +604,36 @@ class Game:
       self.player_bullets_per_valley,
       self.player_health
     )
-    # Bind events
-    self.canvas.bind("<Motion>", self.on_cursor_move)
-    self.main_window.bind("<Key>", self.on_key_press)
-    self.canvas.bind("<Button-1>", self.on_click)
-    self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
   
+  def define_player_initial_variables(self):
+    self.player_width = 45
+    self.player_height = 50
+    self.player_speed_per_second = 400
+    self.player_bullet_width = 10
+    self.player_bullet_height = 20
+    self.player_bullet_speed_per_second = 500
+    self.player_bullet_damage = 1
+    self.player_color = "#41bfff"
+    self.player_shoot_rate_per_second = 2.5
+    self.player_health = 5
+    self.player_bullets_per_valley = 1
+    self.no_enemy_spawn_around_player_radius = 300
+
+  def define_enemy_initial_variables(self):
+    self.enemy_ship_spawn_interval_seconds = 1
+    self.enemy_ship_health = 2
+    self.enemy_ship_bullet_speed_per_second = 150
+    self.enemy_ship_bullet_damage = 1
+    self.enemy_ship_color = "#ff0fcb"
+    self.enemy_ship_width = 50
+    self.enemy_ship_height = 55
+    self.enemy_ship_bullet_width = 8
+    self.enemy_ship_bullet_height = 18
+    self.enemy_ship_speed_per_second = 100
+    self.enemy_ship_shoot_rate_per_second_min = 0.5
+    self.enemy_ship_shoot_rate_per_second_max = 0.7
+    self.enemy_ship_bullets_per_valley = 1
+
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
     # Check that point is not within no spawn radius around player
@@ -851,8 +861,7 @@ class Game:
       for j in range(len(delete_indexes_enemy_bullets)):
         if delete_indexes_enemy_bullets[j][0] == delete_index[0] and delete_indexes_enemy_bullets[j][1] > delete_index[1]:
           delete_indexes_enemy_bullets[j][1] -= 1
-      
-      
+       
     
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
@@ -932,7 +941,6 @@ class Application:
     if self.state == "game":
       game = Game(self.main_window, self.config)
     pass
-  
   
 
 def main():
