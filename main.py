@@ -326,6 +326,7 @@ class Ship:
       bullet_color: str,
       bullet_damage: int,
       shoot_rate_per_second: float,
+      bullets_per_valley: int,
       health: int
     ):
     self.canvas = canvas
@@ -349,6 +350,9 @@ class Ship:
     self.display_hitbars = display_hitbars
     self.bullet_color = bullet_color
     self.shot_offset = 5
+    self.bullets_per_valley = bullets_per_valley
+    self.valley_bullets_offset = 2
+    self.valley_bullets_offset += self.bullet_width
     self.bullet_damage = bullet_damage
     self.health = health
     self.max_health = self.health
@@ -404,6 +408,33 @@ class Ship:
     self.calculate_hitboxes_metadata()
     self.transform(self.angle)
 
+  def shoot_valley(self, frame_counter: int, seconds_elapsed: int):
+    # Shoots a valley of bullets_per_valley num of bullets
+    # Check whether ship allowed to shoot
+    temp = frame_counter + seconds_elapsed * self.fps
+    if temp > self.last_shot_at + self.shoot_rate:
+      # Set last shot, to work out whether allowed to shoot on next func call
+      self.last_shot_at = temp
+      # Work out initial shooting point
+      initial_focal = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
+      bullets_remaining = self.bullets_per_valley
+      # If bullets num is odd, shoot one from initial point
+      if bullets_remaining % 2 == 1:
+        self.shoot_bullet(initial_focal)
+        bullets_remaining -= 1
+      offset_coef = 1
+      # If bullets num was initially even, then make offset shorter to avoid having one bullet space blank
+      if bullets_remaining == self.bullets_per_valley:
+          offset_coef = 0.5
+      while bullets_remaining > 0:
+        # Work out focal points for left bullet and right bullet, multiply offset by coefficient to move focal point along the shooting line, and shoot bullets
+        left_focal = utils.resolve_point(initial_focal[0], initial_focal[1], self.valley_bullets_offset * offset_coef, 3/2 * math.pi + self.angle)
+        right_focal = utils.resolve_point(initial_focal[0], initial_focal[1], self.valley_bullets_offset * offset_coef, 1/2 * math.pi + self.angle)
+        self.shoot_bullet(left_focal)
+        self.shoot_bullet(right_focal)
+        bullets_remaining -= 2
+        offset_coef += 1
+
   def calc_bounds_info(self):
     self.bounds_info = utils.get_bounds_info(self.points)
 
@@ -419,17 +450,10 @@ class Ship:
       self.focal_point[1] = temp[1]
       self.transform(self.angle)
   
-  def shoot_bullet(self, frame_counter: int, seconds_elapsed: int):
-    # Check whether ship allowed to shoot
-    temp = frame_counter + seconds_elapsed * self.fps
-
-    if temp > self.last_shot_at + self.shoot_rate:
-      # Set last shot, to work out whether allowed to shoot on next func call
-      self.last_shot_at = temp
-      temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
-      # Create new bullet obj and add to bullet list
-      bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.bullet_damage, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
-      self.bullet_list.append(bullet)
+  def shoot_bullet(self, focal_point: list):
+    # Simply creates a new bullet at some focal_point and adds it to the bullet list
+    bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, focal_point, self.bullet_speed, self.bullet_damage, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
+    self.bullet_list.append(bullet)
     
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
@@ -550,6 +574,7 @@ class Game:
     self.player_color = "#41bfff"
     self.player_shoot_rate_per_second = 2.5
     self.player_health = 5
+    self.player_bullets_per_valley = 1
     self.enemy_ship_spawn_interval_seconds = 1
     self.enemy_ship_health = 2
     self.enemy_ship_bullet_speed_per_second = 150
@@ -563,6 +588,7 @@ class Game:
     self.enemy_ship_speed_per_second = 100
     self.enemy_ship_shoot_rate_per_second_min = 0.5
     self.enemy_ship_shoot_rate_per_second_max = 0.7
+    self.enemy_ship_bullets_per_valley = 1
     self.min_distance_between_bounds = 5
     self.enemy_ships_list = []
     self.max_enemies_on_screen = 1
@@ -589,6 +615,7 @@ class Game:
       self.player_color,
       self.player_bullet_damage,
       self.player_shoot_rate_per_second,
+      self.player_bullets_per_valley,
       self.player_health
     )
     # Bind events
@@ -652,6 +679,7 @@ class Game:
         self.enemy_ship_color,
         self.enemy_ship_bullet_damage,
         random.uniform(self.enemy_ship_shoot_rate_per_second_min, self.enemy_ship_shoot_rate_per_second_max),
+        self.enemy_ship_bullets_per_valley,
         self.enemy_ship_health
       )
       self.enemy_ships_list.append(enemy_ship)
@@ -663,7 +691,7 @@ class Game:
 
   def handle_enemy_ships(self):
     for enemy_ship in self.enemy_ships_list:
-      enemy_ship.shoot_bullet(self.frame_counter, self.seconds_elapsed)
+      enemy_ship.shoot_valley(self.frame_counter, self.seconds_elapsed)
       enemy_ship.on_frame()
       self.handle_enemy_bullets_collisions(enemy_ship)
 
