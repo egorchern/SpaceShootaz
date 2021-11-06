@@ -704,6 +704,8 @@ class Game:
     key = event.char
     if self.controls.get("move") == key:
       self.player.move()
+      # Fix for a bug where ships won't point at player if he just moves without moving mouse around
+      self.point_enemy_ships_to_player()
     elif self.controls.get("pause/unpause") == key:
       # If game is paused, resume
       if self.next_frame_after_id == 0:
