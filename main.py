@@ -851,7 +851,7 @@ class Game:
           delete_indexes[j] -= 1
 
   def handle_remnant_bullets(self):
-    # Handle all events to do with remnant bullets
+    # Handle all events to do with remnant bullets (bullets from ships that were destroyed)
     delete_indexes_remnant = []
     delete_indexes_player_bullets = []
     game_ended = False
