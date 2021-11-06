@@ -759,7 +759,7 @@ class Game:
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
-    pass
+    self.canvas.after_cancel(self.next_frame_after_id)
 
   def handle_enemy_bullets_collisions(self, enemy_ship: Ship):
     delete_indexes = []
