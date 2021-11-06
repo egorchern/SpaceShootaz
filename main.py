@@ -215,6 +215,9 @@ class Utilities:
     return True
 
   def do_objects_collide(self, hitboxes1: list, hitboxes2: list) -> bool:
+  def do_objects_collide(self, obj1, obj2) -> bool:
+    hitboxes1 = obj1.hitboxes
+    hitboxes2 = obj2.hitboxes
     for i in range(len(hitboxes1)):
       hitbox1 = hitboxes1[i]
       for j in range(len(hitboxes2)):
