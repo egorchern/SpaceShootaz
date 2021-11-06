@@ -565,12 +565,13 @@ class Game:
     self.seconds_elapsed = 0
     self.angle = 0
     self.min_distance_between_bounds = 5
-    self.enemy_ships_list = []
+    self.enemy_ships_list: list[Ship] = []
     self.max_enemies_on_screen = 1
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
+    self.remnant_bullets: list[Bullet] = []
     # Call initial variables initializers
     self.define_player_initial_variables()
     self.define_enemy_initial_variables()
@@ -701,10 +702,11 @@ class Game:
 
   def handle_enemy_ships(self):
     # Iterate through all enemy ships all handle events with them
-    for enemy_ship in self.enemy_ships_list:
+    for i in range(len(self.enemy_ships_list)):
+      enemy_ship = self.enemy_ships_list[i]
       enemy_ship.shoot_valley(self.frame_counter, self.seconds_elapsed)
       enemy_ship.on_frame()
-      stop_game = self.handle_enemy_bullets_collisions(enemy_ship)
+      stop_game = self.handle_enemy_bullets_collisions(i)
       # If stop game is True, then players hp is less or equal to 0, so call gameover
       if stop_game:
         self.gameover()
@@ -718,7 +720,7 @@ class Game:
     self.player.on_frame()
     self.handle_enemy_ships()
     self.handle_player_bullets_collisions()
-    
+    self.handle_remnant_bullets()
  
     # Increase ingame time variables
     self.frame_counter += 1
@@ -783,7 +785,8 @@ class Game:
     self.next_frame_after_id = 0
     self.on_frame()
 
-  def handle_enemy_bullets_collisions(self, enemy_ship: Ship):
+  def handle_enemy_bullets_collisions(self, enemy_ship_index: Ship):
+    enemy_ship = self.enemy_ships_list[enemy_ship_index]
     delete_indexes = []
     game_ended = False
     # Iterate through enemy bullets
@@ -836,6 +839,60 @@ class Game:
       for j in range(len(delete_indexes)):
         if delete_indexes[j][0] == delete_index[0] and delete_indexes[j][1] > delete_index[1]:
           delete_indexes[j][1] -= 1
+
+  def delete_redundant_remnant_bullets(self, delete_indexes: list):
+    # Delete redundant player bullets from bullet list
+    for i in range(len(delete_indexes)):
+      delete_index = delete_indexes[i]
+      self.remnant_bullets.pop(delete_index)
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes)):
+        if delete_indexes[j] > delete_index:
+          delete_indexes[j] -= 1
+
+  def handle_remnant_bullets(self):
+    # Handle all events to do with remnant bullets
+    delete_indexes_remnant = []
+    delete_indexes_player_bullets = []
+    game_ended = False
+    for i in range(len(self.remnant_bullets)):
+      bullet = self.remnant_bullets[i]
+      bullet.move()
+      bullet.draw()
+      
+      # handle collision with player
+      do_collide = utils.do_objects_collide(bullet, self.player)
+      if do_collide:
+        # Reduce players health with bullet damage
+        self.player.health -= bullet.damage
+        # If players health is less than or equal to 0, set game ended to true
+        if self.player.health <= 0:
+          game_ended = True
+        delete_indexes_remnant.append(i)
+      
+      # handle collision with player bullets
+      for j in range(len(self.player.bullet_list)):
+        player_bullet = self.player.bullet_list[j]
+        do_collide = utils.do_objects_collide(player_bullet, bullet)
+        if do_collide:
+          temp = player_bullet.damage
+          player_bullet.damage -= bullet.damage
+          bullet.damage -= temp
+          if player_bullet.damage <= 0 and j not in delete_indexes_player_bullets:
+            delete_indexes_player_bullets.append(j)
+          if bullet.damage <= 0 and i not in delete_indexes_remnant:
+            delete_indexes_remnant.append(i)
+    
+    # Delete everything marked for deletion
+    self.delete_redundant_player_bullets(delete_indexes_player_bullets)
+    self.delete_redundant_remnant_bullets(delete_indexes_remnant)
+    # Trigger gameover if game ended is set
+    if game_ended:
+      self.gameover()
+
+  def add_bullets_to_remnant_list(self, enemy_ship: Ship):
+    self.remnant_bullets += enemy_ship.bullet_list
+
   def handle_player_bullets_collisions(self):
     delete_indexes_player_bullets = []
     delete_indexes_enemy_bullets = []
@@ -870,6 +927,7 @@ class Game:
           # If enemy ships health is less than or equal to 0, mark it for deletion
           # Fixed bug where a ship is struck by more than one bullet at the same time which resulted in multiple entries in delete ship
           if enemy_ship.health <= 0 and j not in delete_indexes_ships:
+            
             delete_indexes_ships.append(j)
           delete_indexes_player_bullets.append(i)
           break
