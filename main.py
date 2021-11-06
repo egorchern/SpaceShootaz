@@ -744,7 +744,9 @@ class Game:
         self.pause()
   
   def on_click(self, event):
-    self.player.shoot_bullet(self.frame_counter, self.seconds_elapsed)
+    # Only process click if the game is not paused
+    if self.next_frame_after_id != 0:
+      self.player.shoot_valley(self.frame_counter, self.seconds_elapsed)
   
   def resume(self):
     # Assign next after id and assign after
