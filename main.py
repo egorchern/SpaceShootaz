@@ -148,7 +148,7 @@ class Utilities:
     else:
       return False
 
-  def transform(self, focal_point, angle, points, hitboxes) -> list:
+  def transform(self, focal_point: list, angle: float, points: list, hitboxes: list) -> list:
     # Tilts points by given angle 
     for i in range(0, len(points) - 2, 2):
       # Resolves the new point, when the current point is tilted at current angle
@@ -559,7 +559,7 @@ class Game:
     self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
     self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
     # Tkinter can't handle 60 fps reliably
-    self.fps = 45
+    self.fps = 50
     self.ms_interval = math.floor(1000 / self.fps)
     self.frame_counter = 1
     self.seconds_elapsed = 0
