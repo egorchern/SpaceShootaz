@@ -702,8 +702,8 @@ class Game:
   def on_key_press(self, event):
     # Handles key presses
     key = event.char
-    # Movement key events trigger
-    if self.controls.get("move") == key:
+    # Movement key events trigger, trigger if game is not paused
+    if self.controls.get("move") == key and self.next_frame_after_id != 0:
       self.player.move()
       # Fix for a bug where ships won't point at player if he just moves without moving mouse around
       self.point_enemy_ships_to_player()
@@ -726,7 +726,6 @@ class Game:
     # Cancel canvas after and assign after id = 0
     self.canvas.after_cancel(self.next_frame_after_id)
     self.next_frame_after_id = 0
-    self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 50 bold", text="Paused")
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
