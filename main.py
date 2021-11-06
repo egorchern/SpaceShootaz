@@ -101,7 +101,7 @@ class Utilities:
     # calculates length between two points
     return math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
   
-  def get_bounds_info(self, points: list):
+  def get_bounds_info(self, points: list) -> list:
     # Returns information about object bounds
     xs = [points[i] for i in range(0, len(points) - 2, 2)]
     # Get all X coordinates anc calc min and max
@@ -148,7 +148,7 @@ class Utilities:
     else:
       return False
 
-  def transform(self, focal_point, angle, points, hitboxes):
+  def transform(self, focal_point, angle, points, hitboxes) -> tuple:
     # Tilts points by given angle 
     for i in range(0, len(points) - 2, 2):
       # Resolves the new point, when the current point is tilted at current angle
@@ -180,7 +180,7 @@ class Utilities:
     points.append(lengths)
     points.append(angles)
     return points
-  
+
   def do_hitboxes_collide(self, hitbox1: list, hitbox2: list) -> bool:
     # Calculate whether hitboxes collide using Separating Axis Theorem
     # Get all edge vectors
@@ -228,13 +228,14 @@ class Utilities:
 
 class Bullet:
   # Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation
-  def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, angle, fps, color, display_hitboxes):
+  def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, damage, angle, fps, color, display_hitboxes):
     self.canvas = canvas
     self.canvas_dimensions = canvas_dimensions
     self.width = width
     self.height = height
     self.focal_point = focal_point
     self.speed = speed
+    self.damage = damage
     self.angle = angle
     self.display_hitboxes = display_hitboxes
     self.color = color
@@ -346,9 +347,10 @@ class Ship:
     self.display_hitbars = display_hitbars
     self.bullet_color = bullet_color
     self.shot_offset = 5
+    self.bullet_damage = bullet_damage
     self.health = health
     self.max_health = self.health
-    self.bullet_list = []
+    self.bullet_list: list[Bullet] = []
     self.shoot_rate = fps / shoot_rate_per_second
     self.last_shot_at = -self.fps
     # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]], last two are metadata
@@ -424,9 +426,8 @@ class Ship:
       self.last_shot_at = temp
       temp = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
       # Create new bullet obj and add to bullet list
-      bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
+      bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, list(temp), self.bullet_speed, self.bullet_damage, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
       self.bullet_list.append(bullet)
-    
     
   def calculate_hitboxes_metadata(self):
     # Same as points metadata generation, but iterate throught every hitbox
@@ -547,7 +548,7 @@ class Game:
     self.player_color = "#41bfff"
     self.player_shoot_rate_per_second = 2.5
     self.player_health = 5
-    self.enemy_ship_spawn_interval_seconds = 5
+    self.enemy_ship_spawn_interval_seconds = 1
     self.enemy_ship_health = 2
     self.enemy_ship_bullet_speed_per_second = 150
     self.enemy_ship_bullet_damage = 1
@@ -559,10 +560,10 @@ class Game:
     self.no_enemy_spawn_around_player_radius = 300
     self.enemy_ship_speed_per_second = 100
     self.enemy_ship_shoot_rate_per_second_min = 0.5
-    self.enemy_ship_shoot_rate_per_second_max = 0.8
+    self.enemy_ship_shoot_rate_per_second_max = 0.7
     self.min_distance_between_bounds = 5
     self.enemy_ships_list = []
-    self.max_enemies_on_screen = 2
+    self.max_enemies_on_screen = 1
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
@@ -653,7 +654,6 @@ class Game:
       )
       self.enemy_ships_list.append(enemy_ship)
 
-
   def handle_timed_events(self):
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
       self.spawn_enemy_ship()
@@ -663,6 +663,7 @@ class Game:
     for enemy_ship in self.enemy_ships_list:
       enemy_ship.shoot_bullet(self.frame_counter, self.seconds_elapsed)
       enemy_ship.on_frame()
+      self.handle_enemy_bullets_collisions(enemy_ship)
 
   def on_frame(self):
     # Deletes everything from the canvas
@@ -720,6 +721,26 @@ class Game:
     self.canvas.after_cancel(self.next_frame_after_id)
     self.next_frame_after_id = 0
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 50 bold", text="Paused")
+
+  def handle_enemy_bullets_collisions(self, enemy_ship: Ship):
+    delete_indexes = []
+    for i in range(len(enemy_ship.bullet_list)):
+      bullet = enemy_ship.bullet_list[i]
+      does_collide_with_player = utils.do_objects_collide(bullet.hitboxes, self.player.hitboxes)
+      if does_collide_with_player:
+        self.player.health -= bullet.damage
+        delete_indexes.append(i)
+
+    # Delete redundant bullets from bullet list
+    for i in range(len(delete_indexes)):
+      delete_index = delete_indexes[i]
+      enemy_ship.bullet_list.pop(delete_index)
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes)):
+        if delete_indexes[j] > delete_index:
+          delete_indexes[j] -= 1
+    
+
 
 
 class Menu:
