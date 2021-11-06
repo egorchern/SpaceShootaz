@@ -798,20 +798,44 @@ class Game:
         if self.player.health <= 0:
           game_ended = True
           
-        delete_indexes.append(i)
+        delete_indexes.append([enemy_ship_index, i])
 
-    # Delete redundant bullets from bullet list
+    self.delete_redundant_enemy_bullets(delete_indexes)
+
+    # Return wheter the game should be stoped
+    return game_ended
+  
+  def delete_redundant_enemies(self, delete_indexes: list):
+    # Delete redundant enemy ships from ships list, and add bullets to remnant list, so that they don't dissapear
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
-      enemy_ship.bullet_list.pop(delete_index)
+      self.add_bullets_to_remnant_list(self.enemy_ships_list[delete_index])
+      self.enemy_ships_list.pop(delete_index)
       # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
       for j in range(len(delete_indexes)):
         if delete_indexes[j] > delete_index:
           delete_indexes[j] -= 1
 
-    # Return wheter the game should be stoped
-    return game_ended
+  def delete_redundant_player_bullets(self, delete_indexes: list):
+    # Delete redundant player bullets from bullet list
+    for i in range(len(delete_indexes)):
+      delete_index = delete_indexes[i]
+      self.player.bullet_list.pop(delete_index)
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes)):
+        if delete_indexes[j] > delete_index:
+          delete_indexes[j] -= 1
   
+  def delete_redundant_enemy_bullets(self, delete_indexes: list):
+    # Delete redundant enemy bullets from bullet lists
+    for i in range(len(delete_indexes)):
+      delete_index = delete_indexes[i]
+      # Get enemy ship index from delete index elem and pop bullet at second arg
+      self.enemy_ships_list[delete_index[0]].bullet_list.pop(delete_index[1])
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes)):
+        if delete_indexes[j][0] == delete_index[0] and delete_indexes[j][1] > delete_index[1]:
+          delete_indexes[j][1] -= 1
   def handle_player_bullets_collisions(self):
     delete_indexes_player_bullets = []
     delete_indexes_enemy_bullets = []
@@ -850,34 +874,13 @@ class Game:
           delete_indexes_player_bullets.append(i)
           break
 
-    # Delete everything that is marked for deletion
-    # Delete redundant enemy ships from ships list
-    for i in range(len(delete_indexes_ships)):
-      delete_index = delete_indexes_ships[i]
-      self.enemy_ships_list.pop(delete_index)
-      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
-      for j in range(len(delete_indexes_ships)):
-        if delete_indexes_ships[j] > delete_index:
-          delete_indexes_ships[j] -= 1
+    # Delete destroyed ships
+    self.delete_redundant_enemies(delete_indexes_ships)
+    # Delete redundant player bullets
+    self.delete_redundant_player_bullets(delete_indexes_player_bullets)
+    # Delete redundant enemy bullets
+    self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
     
-    # Delete redundant player bullets from bullet list
-    for i in range(len(delete_indexes_player_bullets)):
-      delete_index = delete_indexes_player_bullets[i]
-      self.player.bullet_list.pop(delete_index)
-      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
-      for j in range(len(delete_indexes_player_bullets)):
-        if delete_indexes_player_bullets[j] > delete_index:
-          delete_indexes_player_bullets[j] -= 1
-
-    # Delete redundant enemy bullets from bullet lists
-    for i in range(len(delete_indexes_enemy_bullets)):
-      delete_index = delete_indexes_enemy_bullets[i]
-      # Get enemy ship index from delete index elem and pop bullet at second arg
-      self.enemy_ships_list[delete_index[0]].bullet_list.pop(delete_index[1])
-      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
-      for j in range(len(delete_indexes_enemy_bullets)):
-        if delete_indexes_enemy_bullets[j][0] == delete_index[0] and delete_indexes_enemy_bullets[j][1] > delete_index[1]:
-          delete_indexes_enemy_bullets[j][1] -= 1
        
     
 class Menu:
