@@ -700,18 +700,26 @@ class Game:
     pass
 
   def handle_enemy_ships(self):
+    # Iterate through all enemy ships all handle events with them
     for enemy_ship in self.enemy_ships_list:
       enemy_ship.shoot_valley(self.frame_counter, self.seconds_elapsed)
       enemy_ship.on_frame()
-      self.handle_enemy_bullets_collisions(enemy_ship)
+      stop_game = self.handle_enemy_bullets_collisions(enemy_ship)
+      # If stop game is True, then players hp is less or equal to 0, so call gameover
+      if stop_game:
+        self.gameover()
+        break
 
   def on_frame(self):
+    # Function for everything that happens every frame
     # Deletes everything from the canvas
     self.canvas.delete("all")
     # Call onframe function of player
     self.player.on_frame()
-    self.handle_player_bullets_collisions()
     self.handle_enemy_ships()
+    self.handle_player_bullets_collisions()
+    
+ 
     # Increase ingame time variables
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
@@ -719,7 +727,9 @@ class Game:
       self.seconds_elapsed += 1
       self.handle_timed_events()
     
-    self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
+    # Fix desync issues, where depending on timing, pause would be ignored
+    if self.next_frame_after_id != 0:
+      self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
     pass
   
   def point_enemy_ships_to_player(self):
@@ -770,9 +780,12 @@ class Game:
   
   def gameover(self):
     self.canvas.after_cancel(self.next_frame_after_id)
+    self.next_frame_after_id = 0
+    self.on_frame()
 
   def handle_enemy_bullets_collisions(self, enemy_ship: Ship):
     delete_indexes = []
+    game_ended = False
     # Iterate through enemy bullets
     for i in range(len(enemy_ship.bullet_list)):
       bullet = enemy_ship.bullet_list[i]
@@ -781,9 +794,10 @@ class Game:
       if does_collide_with_player:
         # Reduce players health with bullet damage
         self.player.health -= bullet.damage
-        # If players health is less than or equal to 0, trigget gameover func
+        # If players health is less than or equal to 0, set game ended to true
         if self.player.health <= 0:
-          self.gameover()
+          game_ended = True
+          
         delete_indexes.append(i)
 
     # Delete redundant bullets from bullet list
@@ -794,6 +808,9 @@ class Game:
       for j in range(len(delete_indexes)):
         if delete_indexes[j] > delete_index:
           delete_indexes[j] -= 1
+
+    # Return wheter the game should be stoped
+    return game_ended
   
   def handle_player_bullets_collisions(self):
     delete_indexes_player_bullets = []
