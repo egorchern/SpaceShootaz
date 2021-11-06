@@ -727,6 +727,7 @@ class Game:
     self.canvas.after_cancel(self.next_frame_after_id)
     self.next_frame_after_id = 0
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 50 bold", text="Paused")
+    self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
     pass
