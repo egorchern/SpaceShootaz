@@ -702,6 +702,7 @@ class Game:
   def on_key_press(self, event):
     # Handles key presses
     key = event.char
+    # Movement key events trigger
     if self.controls.get("move") == key:
       self.player.move()
       # Fix for a bug where ships won't point at player if he just moves without moving mouse around
@@ -726,14 +727,23 @@ class Game:
     self.canvas.after_cancel(self.next_frame_after_id)
     self.next_frame_after_id = 0
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 50 bold", text="Paused")
+  
+  def gameover(self):
+    pass
 
   def handle_enemy_bullets_collisions(self, enemy_ship: Ship):
     delete_indexes = []
+    # Iterate through enemy bullets
     for i in range(len(enemy_ship.bullet_list)):
       bullet = enemy_ship.bullet_list[i]
-      does_collide_with_player = utils.do_objects_collide(bullet.hitboxes, self.player.hitboxes)
+      # If bullet collides with player do:
+      does_collide_with_player = utils.do_objects_collide(bullet, self.player)
       if does_collide_with_player:
+        # Reduce players health with bullet damage
         self.player.health -= bullet.damage
+        # If players health is less than or equal to 0, trigget gameover func
+        if self.player.health <= 0:
+          self.gameover()
         delete_indexes.append(i)
 
     # Delete redundant bullets from bullet list
