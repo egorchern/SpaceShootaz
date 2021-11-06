@@ -214,7 +214,6 @@ class Utilities:
     # If for all axis there is an overlap, then collision occurs
     return True
 
-  def do_objects_collide(self, hitboxes1: list, hitboxes2: list) -> bool:
   def do_objects_collide(self, obj1, obj2) -> bool:
     hitboxes1 = obj1.hitboxes
     hitboxes2 = obj2.hitboxes
@@ -673,6 +672,7 @@ class Game:
     self.canvas.delete("all")
     # Call onframe function of player
     self.player.on_frame()
+    self.handle_player_bullets_collisions()
     self.handle_enemy_ships()
     # Increase ingame time variables
     self.frame_counter += 1
@@ -754,10 +754,76 @@ class Game:
       for j in range(len(delete_indexes)):
         if delete_indexes[j] > delete_index:
           delete_indexes[j] -= 1
+  
+  def handle_player_bullets_collisions(self):
+    delete_indexes_player_bullets = []
+    delete_indexes_enemy_bullets = []
+    delete_indexes_ships = []
+    # Iterate through all player bullets
+    for i in range(len(self.player.bullet_list)):
+      bullet = self.player.bullet_list[i]
+      # Iterate through all enemy ships
+      for j in range(len(self.enemy_ships_list)):
+        enemy_ship = self.enemy_ships_list[j]
+        # Iterate through all enemy bullets
+        for k in range(len(enemy_ship.bullet_list)):
+          enemy_bullet = enemy_ship.bullet_list[k]
+          # If player bullet and enemy bullet collide do
+          do_collide = utils.do_objects_collide(bullet, enemy_bullet)
+          if do_collide:
+            # Reduce players bullet damage by enemy bullet damage and vice versa
+            temp = enemy_bullet.damage
+            enemy_bullet.damage -= self.player.bullet_damage
+            bullet.damage -= temp
+            # If any bullet has less or equal to 0 damage, mark them for deletion
+            if enemy_bullet.damage <= 0:
+              # Since we need to know from which ship the bullet came from, add j - index of the ship with k - index of bullet
+              delete_indexes_enemy_bullets.append([j, k])
+            if bullet.damage <= 0:
+              delete_indexes_player_bullets.append(i)
+        # If player bullet collides with enemy ship
+        do_collide = utils.do_objects_collide(bullet, enemy_ship)
+        if do_collide:
+          # Reduce enemy ship health with bullet damage
+          enemy_ship.health -= bullet.damage
+          # If enemy ships health is less than or equal to 0, mark it for deletion
+          if enemy_ship.health <= 0:
+
+            delete_indexes_ships.append(j)
+          delete_indexes_player_bullets.append(i)
+          break
+
+    # Delete everything that is marked for deletion
+    # Delete redundant enemy ships from ships list
+    for i in range(len(delete_indexes_ships)):
+      delete_index = delete_indexes_ships[i]
+      self.enemy_ships_list.pop(delete_index)
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes_ships)):
+        if delete_indexes_ships[j] > delete_index:
+          delete_indexes_ships[j] -= 1
     
+    # Delete redundant player bullets from bullet list
+    for i in range(len(delete_indexes_player_bullets)):
+      delete_index = delete_indexes_player_bullets[i]
+      self.player.bullet_list.pop(delete_index)
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes_player_bullets)):
+        if delete_indexes_player_bullets[j] > delete_index:
+          delete_indexes_player_bullets[j] -= 1
 
-
-
+    # Delete redundant enemy bullets from bullet lists
+    for i in range(len(delete_indexes_enemy_bullets)):
+      delete_index = delete_indexes_enemy_bullets[i]
+      # Get enemy ship index from delete index elem and pop bullet at second arg
+      self.enemy_ships_list[delete_index[0]].bullet_list.pop(delete_index[1])
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes_enemy_bullets)):
+        if delete_indexes_enemy_bullets[j][0] == delete_index[0] and delete_indexes_enemy_bullets[j][1] > delete_index[1]:
+          delete_indexes_enemy_bullets[j][1] -= 1
+      
+      
+    
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
   def __init__(self):
