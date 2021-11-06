@@ -55,7 +55,7 @@ class Utilities:
       angle = 0
     return angle
   
-  def resolve_point(self, x1: float, y1: float, length: float, angle: float) -> tuple:
+  def resolve_point(self, x1: float, y1: float, length: float, angle: float) -> list:
     # Calculates (x2, y2) point translated using angle with given angle, length and a reference point.
     # Reduces angle to optimal range
     while(angle >= 2 * math.pi):
@@ -95,7 +95,7 @@ class Utilities:
       x_offset = -math.cos(angle) * length
       y_offset = -math.sin(angle) * length
     
-    return (x1 + x_offset, y1 + y_offset)
+    return [x1 + x_offset, y1 + y_offset]
 
   def calculate_length(self, x1: float, y1: float, x2: float, y2: float) -> float:
     # calculates length between two points
@@ -148,7 +148,7 @@ class Utilities:
     else:
       return False
 
-  def transform(self, focal_point, angle, points, hitboxes) -> tuple:
+  def transform(self, focal_point, angle, points, hitboxes) -> list:
     # Tilts points by given angle 
     for i in range(0, len(points) - 2, 2):
       # Resolves the new point, when the current point is tilted at current angle
@@ -164,7 +164,7 @@ class Utilities:
         hitbox[i] = temp[0]
         hitbox[i + 1] = temp[1]
 
-    return (points, hitboxes)
+    return [points, hitboxes]
 
   def calculate_points_metadata(self, points: list, focal_point: list) -> list:
     # Calculates reference angles for using them to offset tilt calculation
