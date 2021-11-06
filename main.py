@@ -181,6 +181,50 @@ class Utilities:
     points.append(angles)
     return points
   
+  def do_hitboxes_collide(self, hitbox1: list, hitbox2: list) -> bool:
+    # Calculate whether hitboxes collide using Separating Axis Theorem
+    # Get all edge vectors
+    vectors = [[hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox1[4] - hitbox1[6], hitbox1[5] - hitbox1[7]], [hitbox1[6] - hitbox1[0], hitbox1[7] - hitbox1[1]], [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox2[4] - hitbox2[6], hitbox2[5] - hitbox2[7]], [hitbox2[6] - hitbox2[0], hitbox2[7] - hitbox2[1]]]
+    for vector in vectors:
+      # Get perpendicular edge vector
+      normal_vector = [-vector[1], vector[0]]
+      a_min = float("inf")
+      a_max = float("-inf")
+      b_min = float("inf")
+      b_max = float("-inf")
+      # Iterate through all points on hitbox1 and hitbox2 and set min max values to compare later
+      for i in range(0, len(hitbox1) - 2, 2):
+        x = hitbox1[i]
+        y = hitbox1[i + 1]
+        dot = ((x * normal_vector[0]) + (y * normal_vector[1]))
+        a_min = min(a_min, dot)
+        a_max = max(a_max, dot)
+      
+      for i in range(0, len(hitbox2) - 2, 2):
+        x = hitbox2[i]
+        y = hitbox2[i + 1]
+        dot = ((x * normal_vector[0]) + (y * normal_vector[1]))
+        b_min = min(b_min, dot)
+        b_max = max(b_max, dot)
+      
+      # If no overlap found, there can be no collision according to the theorem
+      if not (b_max >= a_min and b_min <= a_max):
+        return False
+
+    # If for all axis there is an overlap, then collision occurs
+    return True
+
+  def do_objects_collide(self, hitboxes1: list, hitboxes2: list) -> bool:
+    for i in range(len(hitboxes1)):
+      hitbox1 = hitboxes1[i]
+      for j in range(len(hitboxes2)):
+        hitbox2 = hitboxes2[j]
+        do_collide = self.do_hitboxes_collide(hitbox1, hitbox2)
+        if do_collide == True:
+          return True
+
+    return False
+
 
 class Bullet:
   # Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation
