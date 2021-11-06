@@ -806,10 +806,10 @@ class Game:
             enemy_bullet.damage -= self.player.bullet_damage
             bullet.damage -= temp
             # If any bullet has less or equal to 0 damage, mark them for deletion
-            if enemy_bullet.damage <= 0:
+            if enemy_bullet.damage <= 0 and [j, k] not in delete_indexes_enemy_bullets:
               # Since we need to know from which ship the bullet came from, add j - index of the ship with k - index of bullet
               delete_indexes_enemy_bullets.append([j, k])
-            if bullet.damage <= 0:
+            if bullet.damage <= 0 and i not in delete_indexes_player_bullets:
               delete_indexes_player_bullets.append(i)
         # If player bullet collides with enemy ship
         do_collide = utils.do_objects_collide(bullet, enemy_ship)
@@ -817,8 +817,8 @@ class Game:
           # Reduce enemy ship health with bullet damage
           enemy_ship.health -= bullet.damage
           # If enemy ships health is less than or equal to 0, mark it for deletion
-          if enemy_ship.health <= 0:
-
+          # Fixed bug where a ship is struck by more than one bullet at the same time which resulted in multiple entries in delete ship
+          if enemy_ship.health <= 0 and j not in delete_indexes_ships:
             delete_indexes_ships.append(j)
           delete_indexes_player_bullets.append(i)
           break
