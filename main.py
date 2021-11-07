@@ -1,4 +1,4 @@
-# Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester python coursework
+# Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester 16321 Python coursework
 # Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
 import tkinter as tk
 import math
@@ -8,6 +8,7 @@ import random
 
 utils = 0
 # Points have last two elements as metadata, so thats why it is len(points) - 2
+# On frame is a function that triggers every frame
 class Utilities:
   # Class for utility functions, such as resolve angle and resolve point
   def __init__(self):
@@ -221,6 +222,7 @@ class Utilities:
     return True
 
   def do_objects_collide(self, obj1, obj2) -> bool:
+    # Generic object collision driver function, iterates through hitboxes of first object and compares with each hitbox in second object
     hitboxes1 = obj1.hitboxes
     hitboxes2 = obj2.hitboxes
     for i in range(len(hitboxes1)):
@@ -229,9 +231,66 @@ class Utilities:
         hitbox2 = hitboxes2[j]
         do_collide = self.do_hitboxes_collide(hitbox1, hitbox2)
         if do_collide == True:
+          # If at least pair of hitboxes collide, return True
           return True
 
+    # If no hitboxes collide, then objects don't collide, return False
     return False
+
+
+class Bomb:
+  # Generic class for bomb
+  def __init__(
+    self,
+    canvas: tk.Canvas,
+    focal_point: list,
+    blast_delay_in_seconds: float,
+    blast_radius: float,
+    blast_radius_color: str,
+    blast_damage: float,
+    fps: int,
+    show_blast_seconds: float
+  ):
+    self.focal_point = focal_point
+    self.canvas = canvas
+    self.blast_radius = blast_radius
+    self.blast_radius_color = blast_radius_color
+    self.blast_damage = blast_damage
+    self.fps = fps
+    self.image_paths = ["images/bomb_1_r.png", "images/bomb_2_r.png", "images/bomb_3_r.png", "images/bomb_4_r.png"]
+    self.blast_counter = 0
+    self.blast_delay = blast_delay_in_seconds * self.fps
+    self.show_blast_frames = show_blast_seconds * self.fps
+    self.blast_radius_width = 1
+    # 5 stages, last one is actual damage taken 
+    self.bomb_stage = 0
+
+  def is_redundant(self):
+    if self.blast_counter > self.blast_delay + self.show_blast_frames:
+      return True
+    else:
+      False
+
+  def on_frame(self):
+    self.blast_counter += 1
+    if self.blast_counter <= self.blast_delay + self.show_blast_frames:
+      stage_percentage = self.blast_counter / self.blast_delay
+      self.bomb_stage = math.floor(stage_percentage * len(self.image_paths))
+      
+      self.draw()
+
+  def draw(self):
+    blast_radius_rectangle = [self.focal_point[0] - self.blast_radius, self.focal_point[1] - self.blast_radius, self.focal_point[0] + self.blast_radius, self.focal_point[1] + self.blast_radius  ]
+    if self.bomb_stage < 4:
+      # Instantiate image data
+      self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
+      # Draw the bomb itself
+      self.canvas.create_image(self.focal_point[0], self.focal_point[1], image=self.bomb_image)
+      # Draw blast radius
+      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, width=self.blast_radius_width)
+    else:
+      # If bomb has exploded, fill explosion radius to indicate blast
+      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color, width=self.blast_radius_width) 
 
 
 class Bullet:
@@ -572,23 +631,39 @@ class Game:
     self.angle = 0
     self.min_distance_between_bounds = 5
     self.enemy_ships_list: list[Ship] = []
-    self.max_enemies_on_screen = 1
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
+    # 0 - in progress, 1 - ended
+    self.game_state = 0
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
     self.remnant_bullets: list[Bullet] = []
+    
+    self.enemy_bomb_list: list[Bomb] = []
     # Call initial variables initializers
     self.define_player_initial_variables()
     self.define_enemy_initial_variables()
+    self.define_bomb_initial_variables()
     self.instantiate_player()
-    
+   
     # Bind events
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
-
+  
+  def deal_damage_to_player(self, damage):
+    # Too tired to put gameover checks after any damage instance to player, so created dedicated function
+    # This prevents health bar from becoming wacky, since health can't get less than 0
+    if self.player.health - damage < 0:
+      self.player.health = 0
+    else:
+      self.player.health -= damage
+    
+    # If health is at 0, call gameover
+    if self.player.health == 0:
+      self.gameover()
+    
   def instantiate_player(self):
     self.player = Ship(
       self.canvas,
@@ -627,8 +702,10 @@ class Game:
     self.no_enemy_spawn_around_player_radius = 300
 
   def define_enemy_initial_variables(self):
-    self.enemy_ship_spawn_interval_seconds = 1
-    self.enemy_ship_health = 2
+    self.enemy_ship_spawn_interval_seconds = 3
+    self.max_enemies_on_screen = 2
+    self.absolute_max_enemies_on_screen = 10
+    self.enemy_ship_health = 3
     self.enemy_ship_bullet_speed_per_second = 150
     self.enemy_ship_bullet_damage = 1
     self.enemy_ship_color = "#ff0fcb"
@@ -640,6 +717,17 @@ class Game:
     self.enemy_ship_shoot_rate_per_second_min = 0.5
     self.enemy_ship_shoot_rate_per_second_max = 0.7
     self.enemy_ship_bullets_per_valley = 1
+  
+  def define_bomb_initial_variables(self):
+    self.show_blast_seconds = 0.3
+    self.bomb_blast_delay = 4
+    self.bomb_blast_radius = 80
+    self.bomb_blast_radius_color = "red"
+    self.bomb_blast_damage = 2
+    self.bomb_spawn_interval = 8
+    self.bomb_spawn_offset_from_player = 12
+    self.max_bombs_on_screen = 2
+    self.absolute_max_bombs_on_screen = 8
 
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
@@ -655,7 +743,21 @@ class Game:
         return False
 
     return True
-
+  
+  def is_player_in_bomb_radius(self, bomb: Bomb):
+    # Determines whether any player's hitbox points are within the given bombs blast radius
+    for hitbox in self.player.hitboxes:
+      for i in range(0, len(hitbox) - 2, 2):
+        x = hitbox[i]
+        y = hitbox[i + 1]
+        # Calc dist to bomb centre
+        dist_to_bomb_centre = utils.calculate_length(x, y, bomb.focal_point[0], bomb.focal_point[1])
+        # Compare to blast radius, if less than, then hitbox is in blast radius
+        if dist_to_bomb_centre <= bomb.blast_radius:
+          return True
+    # If no hitbox points are within blast radius, then player is not in blast radius
+    return False
+  
   def generate_random_point(self):
     # Generate a random point not occupied by anything
     min_x = math.ceil(self.enemy_ship_width / 2 + self.min_distance_between_bounds)
@@ -700,8 +802,33 @@ class Game:
         self.enemy_ship_health
       )
       self.enemy_ships_list.append(enemy_ship)
+  
+  def spawn_enemy_bomb(self):
+    
+    def difference ():
+      temp = random.randint(0, 1)
+      if temp == 0:
+        return -self.bomb_spawn_offset_from_player
+      else:
+        return self.bomb_spawn_offset_from_player
+
+    if len(self.enemy_bomb_list) < self.max_bombs_on_screen:
+      spawn_point = [self.player.focal_point[0] + difference(), self.player.focal_point[1] + difference()]
+      bomb = Bomb(
+        self.canvas, 
+        spawn_point.copy(),
+        self.bomb_blast_delay,
+        self.bomb_blast_radius,
+        self.bomb_blast_radius_color,
+        self.bomb_blast_damage,
+        self.fps,
+        self.show_blast_seconds
+      )
+      self.enemy_bomb_list.append(bomb)
 
   def handle_timed_events(self):
+    if self.seconds_elapsed % self.bomb_spawn_interval == 0:
+      self.spawn_enemy_bomb()
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
       self.spawn_enemy_ship()
     pass
@@ -717,17 +844,36 @@ class Game:
       if stop_game:
         self.gameover()
         break
+  
+  def handle_bombs(self):
+    # Function to do everything on bombs
+    delete_indexes = []
+    for i in range(len(self.enemy_bomb_list)):
+      bomb = self.enemy_bomb_list[i]
+      bomb.on_frame()
+      if bomb.blast_counter == bomb.blast_delay and self.is_player_in_bomb_radius(bomb):
+        self.deal_damage_to_player(bomb.blast_damage)
+      is_redundant = bomb.is_redundant()
+      if is_redundant:
+        delete_indexes.append(i)
+    
+    # Dispose redundant bombs (bombs that are already exploded fully)
+    self.delete_redundant_bombs(delete_indexes)
 
   def on_frame(self):
     # Function for everything that happens every frame
     # Deletes everything from the canvas
     self.canvas.delete("all")
-    # Call onframe function of player
+    # ORDER IS IMPORTANT
+    # first handle bombs, since player moves outside of frames, no problems with frame desync. Also to allow player to be over the bomb texture
+    self.handle_bombs()
+    # second handle player, it has to be above enemy ships, since it also calls function to handle all bullets
     self.player.on_frame()
+    # third handle enemy ships
     self.handle_enemy_ships()
     self.handle_player_bullets_collisions()
     self.handle_remnant_bullets()
- 
+    self.handle_player_enemy_ship_collision()
     # Increase ingame time variables
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
@@ -787,33 +933,31 @@ class Game:
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
-    self.canvas.after_cancel(self.next_frame_after_id)
-    self.next_frame_after_id = 0
-    self.on_frame()
+    # Function that handles what happens after players health is 0
+    if self.game_state == 0:
+      self.canvas.after_cancel(self.next_frame_after_id)
+      self.next_frame_after_id = 0
+      self.game_state = 1
+      # Fix bug where game stops without fully displaying a frame 
+      self.player.draw()
+      for enemy_ship in self.enemy_ships_list:
+        enemy_ship.draw()
 
-  def handle_enemy_bullets_collisions(self, enemy_ship_index: Ship):
+  def handle_enemy_bullets_collisions(self, enemy_ship_index: int):
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
     delete_indexes = []
-    game_ended = False
     # Iterate through enemy bullets
     for i in range(len(enemy_ship.bullet_list)):
       bullet = enemy_ship.bullet_list[i]
       # If bullet collides with player do:
       does_collide_with_player = utils.do_objects_collide(bullet, self.player)
       if does_collide_with_player:
-        # Reduce players health with bullet damage
-        self.player.health -= bullet.damage
-        # If players health is less than or equal to 0, set game ended to true
-        if self.player.health <= 0:
-          game_ended = True
+        self.deal_damage_to_player(bullet.damage)
           
         delete_indexes.append([enemy_ship_index, i])
 
     self.delete_redundant_enemy_bullets(delete_indexes)
 
-    # Return wheter the game should be stoped
-    return game_ended
-  
   def delete_redundant_enemies(self, delete_indexes: list):
     # Delete redundant enemy ships from ships list, and add bullets to remnant list, so that they don't dissapear
     for i in range(len(delete_indexes)):
@@ -855,12 +999,21 @@ class Game:
       for j in range(len(delete_indexes)):
         if delete_indexes[j] > delete_index:
           delete_indexes[j] -= 1
+  
+  def delete_redundant_bombs(self, delete_indexes: list):
+    # Delete redundant bombs from bombs list
+    for i in range(len(delete_indexes)):
+      delete_index = delete_indexes[i]
+      self.enemy_bomb_list.pop(delete_index)
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes)):
+        if delete_indexes[j] > delete_index:
+          delete_indexes[j] -= 1
 
   def handle_remnant_bullets(self):
     # Handle all events to do with remnant bullets (bullets from ships that were destroyed)
     delete_indexes_remnant = []
     delete_indexes_player_bullets = []
-    game_ended = False
     for i in range(len(self.remnant_bullets)):
       bullet = self.remnant_bullets[i]
       bullet.move()
@@ -869,11 +1022,7 @@ class Game:
       # handle collision with player
       do_collide = utils.do_objects_collide(bullet, self.player)
       if do_collide:
-        # Reduce players health with bullet damage
-        self.player.health -= bullet.damage
-        # If players health is less than or equal to 0, set game ended to true
-        if self.player.health <= 0:
-          game_ended = True
+        self.deal_damage_to_player(bullet.damage)
         delete_indexes_remnant.append(i)
       
       # handle collision with player bullets
@@ -893,8 +1042,6 @@ class Game:
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
     self.delete_redundant_remnant_bullets(delete_indexes_remnant)
     # Trigger gameover if game ended is set
-    if game_ended:
-      self.gameover()
 
   def add_bullets_to_remnant_list(self, enemy_ship: Ship):
     # Function to add dead ships bullets to remnant list, to prevent bullets from dissapearing
@@ -925,6 +1072,7 @@ class Game:
               # Since we need to know from which ship the bullet came from, add j - index of the ship with k - index of bullet
               delete_indexes_enemy_bullets.append([j, k])
             if bullet.damage <= 0 and i not in delete_indexes_player_bullets:
+              
               delete_indexes_player_bullets.append(i)
         # If player bullet collides with enemy ship
         do_collide = utils.do_objects_collide(bullet, enemy_ship)
@@ -934,9 +1082,9 @@ class Game:
           # If enemy ships health is less than or equal to 0, mark it for deletion
           # Fixed bug where a ship is struck by more than one bullet at the same time which resulted in multiple entries in delete ship
           if enemy_ship.health <= 0 and j not in delete_indexes_ships:
-            
             delete_indexes_ships.append(j)
-          delete_indexes_player_bullets.append(i)
+          if i not in delete_indexes_player_bullets:
+            delete_indexes_player_bullets.append(i)
           break
 
     # Delete destroyed ships
@@ -945,8 +1093,24 @@ class Game:
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
     # Delete redundant enemy bullets
     self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
+
+  def handle_player_enemy_ship_collision(self):
+    delete_indexes = []
+    for i in range(len(self.enemy_ships_list)):
+      enemy_ship = self.enemy_ships_list[i]
+      do_collide = utils.do_objects_collide(self.player, enemy_ship)
+      if do_collide:
+        # Classic, when two variables depend on each other for change, need to use a third variable to store at least one var
+        temp = enemy_ship.health
+        enemy_ship.health -= self.player.health
+        if i not in delete_indexes and enemy_ship.health <= 0:
+          delete_indexes.append(i)
+        self.deal_damage_to_player(temp)
+        
     
-       
+    self.delete_redundant_enemies(delete_indexes)
+
+
     
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
