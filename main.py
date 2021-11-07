@@ -640,7 +640,19 @@ class Game:
     self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
-
+  
+  def deal_damage_to_player(self, damage):
+    # Too tired to put gameover checks after any damage instance to player, so created dedicated function
+    # This prevents health bar from becoming wacky, since health can't get less than 0
+    if self.player.health - damage < 0:
+      self.player.health = 0
+    else:
+      self.player.health -= damage
+    
+    # If health is at 0, call gameover
+    if self.player.health == 0:
+      self.gameover()
+    
   def instantiate_player(self):
     self.player = Ship(
       self.canvas,
@@ -863,25 +875,18 @@ class Game:
   def handle_enemy_bullets_collisions(self, enemy_ship_index: Ship):
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
     delete_indexes = []
-    game_ended = False
     # Iterate through enemy bullets
     for i in range(len(enemy_ship.bullet_list)):
       bullet = enemy_ship.bullet_list[i]
       # If bullet collides with player do:
       does_collide_with_player = utils.do_objects_collide(bullet, self.player)
       if does_collide_with_player:
-        # Reduce players health with bullet damage
-        self.player.health -= bullet.damage
-        # If players health is less than or equal to 0, set game ended to true
-        if self.player.health <= 0:
-          game_ended = True
+        self.deal_damage_to_player(bullet.damage)
           
         delete_indexes.append([enemy_ship_index, i])
 
     self.delete_redundant_enemy_bullets(delete_indexes)
 
-    # Return wheter the game should be stoped
-    return game_ended
   
   def delete_redundant_enemies(self, delete_indexes: list):
     # Delete redundant enemy ships from ships list, and add bullets to remnant list, so that they don't dissapear
@@ -938,11 +943,7 @@ class Game:
       # handle collision with player
       do_collide = utils.do_objects_collide(bullet, self.player)
       if do_collide:
-        # Reduce players health with bullet damage
-        self.player.health -= bullet.damage
-        # If players health is less than or equal to 0, set game ended to true
-        if self.player.health <= 0:
-          game_ended = True
+        self.deal_damage_to_player(bullet.damage)
         delete_indexes_remnant.append(i)
       
       # handle collision with player bullets
