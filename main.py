@@ -234,6 +234,55 @@ class Utilities:
     return False
 
 
+class Bomb:
+  # Generic class for bomb
+  def __init__(
+    self,
+    canvas: tk.Canvas,
+    focal_point: list,
+    blast_delay_in_seconds: float,
+    blast_radius: float,
+    blast_radius_color: str,
+    blast_damage: float,
+    fps: int,
+    show_blast_seconds: float
+  ):
+    self.focal_point = focal_point
+    self.canvas = canvas
+    self.blast_radius = blast_radius
+    self.blast_radius_color = blast_radius_color
+    self.blast_damage = blast_damage
+    self.fps = fps
+    self.image_paths = ["images/bomb_1_r.png", "images/bomb_2_r.png", "images/bomb_3_r.png", "images/bomb_4_r.png"]
+    self.blast_counter = 0
+    self.blast_delay = blast_delay_in_seconds * self.fps
+    self.show_blast_frames = show_blast_seconds * self.fps
+    # 5 stages, last one is actual damage taken 
+    self.bomb_stage = 0
+
+  def on_frame(self):
+    self.blast_counter += 1
+    if self.blast_counter <= self.blast_delay + self.show_blast_frames:
+      stage_percentage = self.blast_counter / self.blast_delay
+      self.bomb_stage = math.floor(stage_percentage * len(self.image_paths))
+      
+      self.draw()
+
+  def draw(self):
+    blast_radius_rectangle = [self.focal_point[0] - self.blast_radius / 2, self.focal_point[1] - self.blast_radius / 2, self.focal_point[0] + self.blast_radius / 2, self.focal_point[1] + self.blast_radius / 2  ]
+    if self.bomb_stage < 4:
+      # Instantiate image data
+      self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
+      # Draw the bomb itself
+      self.canvas.create_image(self.focal_point[0], self.focal_point[1], image=self.bomb_image)
+      # Draw blast radius
+      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color)
+    else:
+      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color)
+    
+    
+
+
 class Bullet:
   # Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation
   def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, damage, angle, fps, color, display_hitboxes):
