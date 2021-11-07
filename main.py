@@ -786,8 +786,33 @@ class Game:
         self.enemy_ship_health
       )
       self.enemy_ships_list.append(enemy_ship)
+  
+  def spawn_enemy_bomb(self):
+    
+    def difference ():
+      temp = random.randint(0, 1)
+      if temp == 0:
+        return -self.bomb_spawn_offset_from_player
+      else:
+        return self.bomb_spawn_offset_from_player
+
+    if len(self.enemy_bomb_list) < self.max_bombs_on_screen:
+      spawn_point = [self.player.focal_point[0] + difference(), self.player.focal_point[1] + difference()]
+      bomb = Bomb(
+        self.canvas, 
+        spawn_point.copy(),
+        self.bomb_blast_delay,
+        self.bomb_blast_radius,
+        self.bomb_blast_radius_color,
+        self.bomb_blast_damage,
+        self.fps,
+        self.show_blast_seconds
+      )
+      self.enemy_bomb_list.append(bomb)
 
   def handle_timed_events(self):
+    if self.seconds_elapsed % self.bomb_spawn_interval == 0:
+      self.spawn_enemy_bomb()
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
       self.spawn_enemy_ship()
     pass
