@@ -261,6 +261,7 @@ class Bomb:
     self.blast_counter = 0
     self.blast_delay = blast_delay_in_seconds * self.fps
     self.show_blast_frames = show_blast_seconds * self.fps
+    self.blast_radius_width = 1
     # 5 stages, last one is actual damage taken 
     self.bomb_stage = 0
 
@@ -286,9 +287,10 @@ class Bomb:
       # Draw the bomb itself
       self.canvas.create_image(self.focal_point[0], self.focal_point[1], image=self.bomb_image)
       # Draw blast radius
-      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color)
+      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, width=self.blast_radius_width)
     else:
-      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color) 
+      # If bomb has exploded, fill explosion radius to indicate blast
+      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color, width=self.blast_radius_width) 
 
 
 class Bullet:
@@ -871,7 +873,7 @@ class Game:
     self.handle_enemy_ships()
     self.handle_player_bullets_collisions()
     self.handle_remnant_bullets()
-    
+    self.handle_player_enemy_ship_collision()
     # Increase ingame time variables
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
@@ -931,13 +933,17 @@ class Game:
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
+    # Function that handles what happens after players health is 0
     if self.game_state == 0:
       self.canvas.after_cancel(self.next_frame_after_id)
       self.next_frame_after_id = 0
       self.game_state = 1
-      #self.on_frame()
+      # Fix bug where game stops without fully displaying a frame 
+      self.player.draw()
+      for enemy_ship in self.enemy_ships_list:
+        enemy_ship.draw()
 
-  def handle_enemy_bullets_collisions(self, enemy_ship_index: Ship):
+  def handle_enemy_bullets_collisions(self, enemy_ship_index: int):
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
     delete_indexes = []
     # Iterate through enemy bullets
@@ -1087,7 +1093,24 @@ class Game:
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
     # Delete redundant enemy bullets
     self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
+
+  def handle_player_enemy_ship_collision(self):
+    delete_indexes = []
+    for i in range(len(self.enemy_ships_list)):
+      enemy_ship = self.enemy_ships_list[i]
+      do_collide = utils.do_objects_collide(self.player, enemy_ship)
+      if do_collide:
+        # Classic, when two variables depend on each other for change, need to use a third variable to store at least one var
+        temp = enemy_ship.health
+        enemy_ship.health -= self.player.health
+        if i not in delete_indexes and enemy_ship.health <= 0:
+          delete_indexes.append(i)
+        self.deal_damage_to_player(temp)
+        
     
+    self.delete_redundant_enemies(delete_indexes)
+
+
     
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
