@@ -627,23 +627,14 @@ class Game:
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
     self.remnant_bullets: list[Bullet] = []
-    self.show_blast = 0.3
-    self.bomb_list: list[Bomb] = []
+    
+    self.enemy_bomb_list: list[Bomb] = []
     # Call initial variables initializers
     self.define_player_initial_variables()
     self.define_enemy_initial_variables()
+    self.define_bomb_initial_variables()
     self.instantiate_player()
-    # Test for bomb
-    self.bomb_list.append(Bomb(
-      self.canvas,
-      [self.canvas_centre_x, self.canvas_centre_y],
-      4,
-      200,
-      "#ff0fcb",
-      2,
-      self.fps,
-      self.show_blast
-    ))
+   
     # Bind events
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
@@ -701,6 +692,17 @@ class Game:
     self.enemy_ship_shoot_rate_per_second_min = 0.5
     self.enemy_ship_shoot_rate_per_second_max = 0.7
     self.enemy_ship_bullets_per_valley = 1
+  
+  def define_bomb_initial_variables(self):
+    self.show_blast_seconds = 0.3
+    self.bomb_blast_delay = 4
+    self.bomb_blast_radius = 80
+    self.bomb_blast_radius_color = "red"
+    self.bomb_blast_damage = 2
+    self.bomb_spawn_interval = 8
+    self.bomb_spawn_offset_from_player = 12
+    self.max_bombs_on_screen = 2
+    self.absolute_max_bombs_on_screen = 8
 
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
