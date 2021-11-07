@@ -701,8 +701,8 @@ class Game:
     self.player_health = 5
     self.player_bullets_per_valley = 1
     self.no_enemy_spawn_around_player_radius = 300
-    self.player_upgrade_interval_seconds = 15
-
+    self.hp_regen_interval = 30
+    
   def define_enemy_initial_variables(self):
     self.enemy_ship_spawn_interval_seconds = 3
     self.max_enemies_on_screen = 2
@@ -844,6 +844,8 @@ class Game:
       self.spawn_enemy_bomb()
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
       self.spawn_enemy_ship()
+    if self.seconds_elapsed % self.player_upgrade_interval_seconds == 0:
+      self.upgrade_player()
     pass
 
   def handle_enemy_ships(self):
@@ -1122,6 +1124,27 @@ class Game:
         
     
     self.delete_redundant_enemies(delete_indexes)
+
+  def upgrade_player(self):
+    self.pause()
+    upgrade_indexes = []
+    # Upgrade options:
+    # 0 - Increase health by {player_health_gain}
+    # 1 - Increase speed by {player_speed_gain}
+    # 2 - Increase damage per bullet by {player_damage_gain}
+    # 3 - Increase shoot rate by {player_shoot_rate_gain}
+    # 4 - Increase bullets per valley by {player_bullets_per_valley_gain}
+    # 5 - Decrease hp regen interval by {player_hp_regen_interval_reduction}
+    # 6 - Increase player's bullet size by {player_bullet_size_gain}
+    choice_max = 6
+    for i in range(self.player_upgrade_choices):
+      choice_index = random.randint(0, choice_max)
+      while choice_index in upgrade_indexes:
+        choice_index = random.randint(0, choice_max)
+      upgrade_indexes.append(choice_index)
+    print("fa")
+
+
 
     
 class Menu:
