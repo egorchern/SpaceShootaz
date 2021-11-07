@@ -897,6 +897,7 @@ class Game:
       self.gameover()
 
   def add_bullets_to_remnant_list(self, enemy_ship: Ship):
+    # Function to add dead ships bullets to remnant list, to prevent bullets from dissapearing
     self.remnant_bullets += enemy_ship.bullet_list
 
   def handle_player_bullets_collisions(self):
