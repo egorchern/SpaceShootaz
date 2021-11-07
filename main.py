@@ -690,7 +690,7 @@ class Game:
   def define_player_initial_variables(self):
     self.player_width = 45
     self.player_height = 50
-    self.player_speed_per_second = 400
+    self.player_speed_per_second = 350
     self.player_bullet_width = 10
     self.player_bullet_height = 20
     self.player_bullet_speed_per_second = 500
@@ -700,6 +700,7 @@ class Game:
     self.player_health = 5
     self.player_bullets_per_valley = 1
     self.no_enemy_spawn_around_player_radius = 300
+    self.player_upgrade_interval_seconds = 15
 
   def define_enemy_initial_variables(self):
     self.enemy_ship_spawn_interval_seconds = 3
@@ -916,6 +917,8 @@ class Game:
       # If not paused, pause
       else:
         self.pause()
+        # display paused text
+        self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def on_click(self, event):
     # Only process click if the game is not paused
@@ -930,13 +933,11 @@ class Game:
     # Cancel canvas after and assign after id = 0
     self.canvas.after_cancel(self.next_frame_after_id)
     self.next_frame_after_id = 0
-    self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
     # Function that handles what happens after players health is 0
     if self.game_state == 0:
-      self.canvas.after_cancel(self.next_frame_after_id)
-      self.next_frame_after_id = 0
+      self.pause()
       self.game_state = 1
       # Fix bug where game stops without fully displaying a frame 
       self.player.draw()
@@ -1109,7 +1110,6 @@ class Game:
         
     
     self.delete_redundant_enemies(delete_indexes)
-
 
     
 class Menu:
