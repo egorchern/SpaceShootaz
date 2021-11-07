@@ -644,6 +644,7 @@ class Game:
     self.define_player_initial_variables()
     self.define_enemy_initial_variables()
     self.define_bomb_initial_variables()
+    self.define_player_scaling_variables()
     self.instantiate_player()
    
     # Bind events
@@ -729,6 +730,17 @@ class Game:
     self.bomb_spawn_offset_from_player = 12
     self.max_bombs_on_screen = 2
     self.absolute_max_bombs_on_screen = 8
+  
+  def define_player_scaling_variables(self):
+    self.player_upgrade_interval_seconds = 15
+    self.player_upgrade_choices = 3
+    self.player_health_gain = 2
+    self.player_damage_gain = 1
+    self.player_bullets_per_valley_gain = 1
+    self.player_shoot_rate_gain = 0.7
+    self.player_speed_gain = 50
+    self.player_hp_regen_interval_reduction = 5
+    self.player_bullet_size_gain = 4
 
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
