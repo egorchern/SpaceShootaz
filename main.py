@@ -280,6 +280,7 @@ class Bomb:
 
   def draw(self):
     blast_radius_rectangle = [self.focal_point[0] - self.blast_radius / 2, self.focal_point[1] - self.blast_radius / 2, self.focal_point[0] + self.blast_radius / 2, self.focal_point[1] + self.blast_radius / 2  ]
+    blast_radius_rectangle = [self.focal_point[0] - self.blast_radius, self.focal_point[1] - self.blast_radius, self.focal_point[0] + self.blast_radius, self.focal_point[1] + self.blast_radius  ]
     if self.bomb_stage < 4:
       # Instantiate image data
       self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
