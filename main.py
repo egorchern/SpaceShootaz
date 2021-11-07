@@ -279,7 +279,6 @@ class Bomb:
       self.draw()
 
   def draw(self):
-    blast_radius_rectangle = [self.focal_point[0] - self.blast_radius / 2, self.focal_point[1] - self.blast_radius / 2, self.focal_point[0] + self.blast_radius / 2, self.focal_point[1] + self.blast_radius / 2  ]
     blast_radius_rectangle = [self.focal_point[0] - self.blast_radius, self.focal_point[1] - self.blast_radius, self.focal_point[0] + self.blast_radius, self.focal_point[1] + self.blast_radius  ]
     if self.bomb_stage < 4:
       # Instantiate image data
@@ -289,9 +288,7 @@ class Bomb:
       # Draw blast radius
       self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color)
     else:
-      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color)
-    
-    
+      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color) 
 
 
 class Bullet:
@@ -632,9 +629,10 @@ class Game:
     self.angle = 0
     self.min_distance_between_bounds = 5
     self.enemy_ships_list: list[Ship] = []
-    self.max_enemies_on_screen = 2
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
+    # 0 - in progress, 1 - ended
+    self.game_state = 0
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
     self.remnant_bullets: list[Bullet] = []
@@ -703,7 +701,9 @@ class Game:
 
   def define_enemy_initial_variables(self):
     self.enemy_ship_spawn_interval_seconds = 3
-    self.enemy_ship_health = 2
+    self.max_enemies_on_screen = 2
+    self.absolute_max_enemies_on_screen = 10
+    self.enemy_ship_health = 3
     self.enemy_ship_bullet_speed_per_second = 150
     self.enemy_ship_bullet_damage = 1
     self.enemy_ship_color = "#ff0fcb"
@@ -879,9 +879,11 @@ class Game:
     self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
-    self.canvas.after_cancel(self.next_frame_after_id)
-    self.next_frame_after_id = 0
-    self.on_frame()
+    if self.game_state == 0:
+      self.canvas.after_cancel(self.next_frame_after_id)
+      self.next_frame_after_id = 0
+      self.game_state = 1
+      #self.on_frame()
 
   def handle_enemy_bullets_collisions(self, enemy_ship_index: Ship):
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
@@ -945,7 +947,6 @@ class Game:
     # Handle all events to do with remnant bullets (bullets from ships that were destroyed)
     delete_indexes_remnant = []
     delete_indexes_player_bullets = []
-    game_ended = False
     for i in range(len(self.remnant_bullets)):
       bullet = self.remnant_bullets[i]
       bullet.move()
@@ -974,8 +975,6 @@ class Game:
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
     self.delete_redundant_remnant_bullets(delete_indexes_remnant)
     # Trigger gameover if game ended is set
-    if game_ended:
-      self.gameover()
 
   def add_bullets_to_remnant_list(self, enemy_ship: Ship):
     # Function to add dead ships bullets to remnant list, to prevent bullets from dissapearing
