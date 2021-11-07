@@ -264,6 +264,12 @@ class Bomb:
     # 5 stages, last one is actual damage taken 
     self.bomb_stage = 0
 
+  def is_redundant(self):
+    if self.blast_counter > self.blast_delay + self.show_blast_frames:
+      return True
+    else:
+      False
+
   def on_frame(self):
     self.blast_counter += 1
     if self.blast_counter <= self.blast_delay + self.show_blast_frames:
