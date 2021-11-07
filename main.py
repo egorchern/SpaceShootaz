@@ -741,7 +741,21 @@ class Game:
         return False
 
     return True
-
+  
+  def is_player_in_bomb_radius(self, bomb: Bomb):
+    # Determines whether any player's hitbox points are within the given bombs blast radius
+    for hitbox in self.player.hitboxes:
+      for i in range(0, len(hitbox) - 2, 2):
+        x = hitbox[i]
+        y = hitbox[i + 1]
+        # Calc dist to bomb centre
+        dist_to_bomb_centre = utils.calculate_length(x, y, bomb.focal_point[0], bomb.focal_point[1])
+        # Compare to blast radius, if less than, then hitbox is in blast radius
+        if dist_to_bomb_centre <= bomb.blast_radius:
+          return True
+    # If no hitbox points are within blast radius, then player is not in blast radius
+    return False
+  
   def generate_random_point(self):
     # Generate a random point not occupied by anything
     min_x = math.ceil(self.enemy_ship_width / 2 + self.min_distance_between_bounds)
@@ -830,9 +844,19 @@ class Game:
         break
   
   def handle_bombs(self):
-    for i in range(len(self.bomb_list)):
-      bomb = self.bomb_list[i]
+    # Function to do everything on bombs
+    delete_indexes = []
+    for i in range(len(self.enemy_bomb_list)):
+      bomb = self.enemy_bomb_list[i]
       bomb.on_frame()
+      if bomb.blast_counter == bomb.blast_delay and self.is_player_in_bomb_radius(bomb):
+        self.deal_damage_to_player(bomb.blast_damage)
+      is_redundant = bomb.is_redundant()
+      if is_redundant:
+        delete_indexes.append(i)
+    
+    # Dispose redundant bombs (bombs that are already exploded fully)
+    self.delete_redundant_bombs(delete_indexes)
 
   def on_frame(self):
     # Function for everything that happens every frame
