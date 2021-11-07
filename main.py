@@ -967,6 +967,16 @@ class Game:
       for j in range(len(delete_indexes)):
         if delete_indexes[j] > delete_index:
           delete_indexes[j] -= 1
+  
+  def delete_redundant_bombs(self, delete_indexes: list):
+    # Delete redundant bombs from bombs list
+    for i in range(len(delete_indexes)):
+      delete_index = delete_indexes[i]
+      self.enemy_bomb_list.pop(delete_index)
+      # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
+      for j in range(len(delete_indexes)):
+        if delete_indexes[j] > delete_index:
+          delete_indexes[j] -= 1
 
   def handle_remnant_bullets(self):
     # Handle all events to do with remnant bullets (bullets from ships that were destroyed)
