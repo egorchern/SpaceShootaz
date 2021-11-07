@@ -1,4 +1,4 @@
-# Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester python coursework
+# Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester 16321 Python coursework
 # Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
 import tkinter as tk
 import math
@@ -8,6 +8,7 @@ import random
 
 utils = 0
 # Points have last two elements as metadata, so thats why it is len(points) - 2
+# On frame is a function that triggers every frame
 class Utilities:
   # Class for utility functions, such as resolve angle and resolve point
   def __init__(self):
@@ -221,6 +222,7 @@ class Utilities:
     return True
 
   def do_objects_collide(self, obj1, obj2) -> bool:
+    # Generic object collision driver function, iterates through hitboxes of first object and compares with each hitbox in second object
     hitboxes1 = obj1.hitboxes
     hitboxes2 = obj2.hitboxes
     for i in range(len(hitboxes1)):
@@ -229,8 +231,10 @@ class Utilities:
         hitbox2 = hitboxes2[j]
         do_collide = self.do_hitboxes_collide(hitbox1, hitbox2)
         if do_collide == True:
+          # If at least pair of hitboxes collide, return True
           return True
 
+    # If no hitboxes collide, then objects don't collide, return False
     return False
 
 
