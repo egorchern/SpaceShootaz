@@ -184,7 +184,13 @@ class Utilities:
   def do_hitboxes_collide(self, hitbox1: list, hitbox2: list) -> bool:
     # Calculate whether hitboxes collide using Separating Axis Theorem
     # Get all edge vectors
-    vectors = [[hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox1[4] - hitbox1[6], hitbox1[5] - hitbox1[7]], [hitbox1[6] - hitbox1[0], hitbox1[7] - hitbox1[1]], [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox2[4] - hitbox2[6], hitbox2[5] - hitbox2[7]], [hitbox2[6] - hitbox2[0], hitbox2[7] - hitbox2[1]]]
+    #vectors = [[hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox1[4] - hitbox1[6], hitbox1[5] - hitbox1[7]], [hitbox1[6] - hitbox1[0], hitbox1[7] - hitbox1[1]], [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox2[4] - hitbox2[6], hitbox2[5] - hitbox2[7]], [hitbox2[6] - hitbox2[0], hitbox2[7] - hitbox2[1]]]
+    vectors = [
+      [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]],
+      [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]],
+      [hitbox2[0] - hitbox2[2], hitbox2[1] - hitbox2[3]],
+      [hitbox2[2] - hitbox2[4], hitbox2[3] - hitbox2[5]] 
+    ]
     for vector in vectors:
       # Get perpendicular edge vector
       normal_vector = [-vector[1], vector[0]]
