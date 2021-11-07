@@ -862,9 +862,12 @@ class Game:
     # Function for everything that happens every frame
     # Deletes everything from the canvas
     self.canvas.delete("all")
+    # ORDER IS IMPORTANT
+    # first handle bombs, since player moves outside of frames, no problems with frame desync. Also to allow player to be over the bomb texture
     self.handle_bombs()
-    # Call onframe function of player
+    # second handle player, it has to be above enemy ships, since it also calls function to handle all bullets
     self.player.on_frame()
+    # third handle enemy ships
     self.handle_enemy_ships()
     self.handle_player_bullets_collisions()
     self.handle_remnant_bullets()
@@ -949,7 +952,6 @@ class Game:
 
     self.delete_redundant_enemy_bullets(delete_indexes)
 
-  
   def delete_redundant_enemies(self, delete_indexes: list):
     # Delete redundant enemy ships from ships list, and add bullets to remnant list, so that they don't dissapear
     for i in range(len(delete_indexes)):
@@ -1064,6 +1066,7 @@ class Game:
               # Since we need to know from which ship the bullet came from, add j - index of the ship with k - index of bullet
               delete_indexes_enemy_bullets.append([j, k])
             if bullet.damage <= 0 and i not in delete_indexes_player_bullets:
+              
               delete_indexes_player_bullets.append(i)
         # If player bullet collides with enemy ship
         do_collide = utils.do_objects_collide(bullet, enemy_ship)
@@ -1073,9 +1076,9 @@ class Game:
           # If enemy ships health is less than or equal to 0, mark it for deletion
           # Fixed bug where a ship is struck by more than one bullet at the same time which resulted in multiple entries in delete ship
           if enemy_ship.health <= 0 and j not in delete_indexes_ships:
-            
             delete_indexes_ships.append(j)
-          delete_indexes_player_bullets.append(i)
+          if i not in delete_indexes_player_bullets:
+            delete_indexes_player_bullets.append(i)
           break
 
     # Delete destroyed ships
