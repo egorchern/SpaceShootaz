@@ -621,17 +621,29 @@ class Game:
     self.angle = 0
     self.min_distance_between_bounds = 5
     self.enemy_ships_list: list[Ship] = []
-    self.max_enemies_on_screen = 1
+    self.max_enemies_on_screen = 2
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
     self.remnant_bullets: list[Bullet] = []
+    self.show_blast = 0.3
+    self.bomb_list: list[Bomb] = []
     # Call initial variables initializers
     self.define_player_initial_variables()
     self.define_enemy_initial_variables()
     self.instantiate_player()
-    
+    # Test for bomb
+    self.bomb_list.append(Bomb(
+      self.canvas,
+      [self.canvas_centre_x, self.canvas_centre_y],
+      4,
+      200,
+      "#ff0fcb",
+      2,
+      self.fps,
+      self.show_blast
+    ))
     # Bind events
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
@@ -676,7 +688,7 @@ class Game:
     self.no_enemy_spawn_around_player_radius = 300
 
   def define_enemy_initial_variables(self):
-    self.enemy_ship_spawn_interval_seconds = 1
+    self.enemy_ship_spawn_interval_seconds = 3
     self.enemy_ship_health = 2
     self.enemy_ship_bullet_speed_per_second = 150
     self.enemy_ship_bullet_damage = 1
@@ -766,17 +778,23 @@ class Game:
       if stop_game:
         self.gameover()
         break
+  
+  def handle_bombs(self):
+    for i in range(len(self.bomb_list)):
+      bomb = self.bomb_list[i]
+      bomb.on_frame()
 
   def on_frame(self):
     # Function for everything that happens every frame
     # Deletes everything from the canvas
     self.canvas.delete("all")
+    self.handle_bombs()
     # Call onframe function of player
     self.player.on_frame()
     self.handle_enemy_ships()
     self.handle_player_bullets_collisions()
     self.handle_remnant_bullets()
- 
+    
     # Increase ingame time variables
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
@@ -995,7 +1013,6 @@ class Game:
     # Delete redundant enemy bullets
     self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
     
-       
     
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
