@@ -924,7 +924,8 @@ class Game:
       self.player.move()
       # Fix for a bug where ships won't point at player if he just moves without moving mouse around
       self.point_enemy_ships_to_player()
-    elif self.controls.get("pause/unpause") == key:
+    # Pause/unpause key event trigger, only process if game not ended
+    elif self.controls.get("pause/unpause") == key and self.game_state == 0:
       # If game is paused, resume
       if self.next_frame_after_id == 0:
         self.resume()
