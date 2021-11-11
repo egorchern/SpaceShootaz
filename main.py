@@ -633,7 +633,7 @@ class Game:
     self.enemy_ships_list: list[Ship] = []
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
-    # 0 - in progress, 1 - ended
+    # 0 - in progress, 1 - ended, 2 - upgrading
     self.game_state = 0
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
@@ -1127,10 +1127,20 @@ class Game:
     self.delete_redundant_enemies(delete_indexes)
 
   def upgrade_player(self):
+    # To prevent user from upausing
+    self.game_state = 2
     self.pause()
     upgrade_indexes = []
     # Upgrade options:
     upgrade_texts = [
+      f"Increase health by {self.player_health_gain} units",
+      f"Increase speed by {self.player_speed_gain} units",
+      f"Increase damage per bullet by {self.player_damage_gain} units",
+      f"Increase shoot rate by {self.player_shoot_rate_gain} seconds",
+      f"Increase bullets per valley by {self.player_bullets_per_valley_gain} bullets",
+      f"Decrease hp regen interval by {self.player_hp_regen_interval_reduction} seconds" ,
+      f"Increase player's bullet size by {self.player_bullet_size_gain} units"
+    ]
     # 0 - Increase health by {player_health_gain}
     # 1 - Increase speed by {player_speed_gain}
     # 2 - Increase damage per bullet by {player_damage_gain}
@@ -1138,17 +1148,20 @@ class Game:
     # 4 - Increase bullets per valley by {player_bullets_per_valley_gain}
     # 5 - Decrease hp regen interval by {player_hp_regen_interval_reduction}
     # 6 - Increase player's bullet size by {player_bullet_size_gain}
-    choice_max = 6
+    choice_max = len(upgrade_texts) - 1
+    # Generate random upgrades indexes
     for i in range(self.player_upgrade_choices):
       choice_index = random.randint(0, choice_max)
+      # Makes sure that upgrade choices are unique
       while choice_index in upgrade_indexes:
         choice_index = random.randint(0, choice_max)
       upgrade_indexes.append(choice_index)
-    font_size = 20
-    text_vertical_margin = font_size + 10
+    font_size = 23
+    text_vertical_margin = font_size + 12
     y_pos = self.canvas_centre_y
     # display choices on the screen
     self.canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size} bold", text="Upgrade time! Press a key corresponding to chosen upgrade")
+    # Draw all upgrade choices as text
     for i in range(len(upgrade_indexes)):
       y_pos += text_vertical_margin
       upgrade_index = upgrade_indexes[i]
