@@ -701,7 +701,7 @@ class Game:
     self.player_health = 5
     self.player_bullets_per_valley = 1
     self.no_enemy_spawn_around_player_radius = 300
-    self.hp_regen_interval = 30
+    self.player_hp_regen_interval = 30
     
   def define_enemy_initial_variables(self):
     self.enemy_ship_spawn_interval_seconds = 3
@@ -739,8 +739,8 @@ class Game:
     self.player_bullets_per_valley_gain = 1
     self.player_shoot_rate_gain = 0.7
     self.player_speed_gain = 50
-    self.player_hp_regen_interval_reduction = 5
-    self.player_bullet_size_gain = 4
+    self.player_hp_regen_interval_reduction = 7
+    self.player_bullet_size_gain = 3
 
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
@@ -838,6 +838,10 @@ class Game:
         self.show_blast_seconds
       )
       self.enemy_bomb_list.append(bomb)
+  
+  def regenerate_player_hp(self):
+    if self.player.health < self.player.max_health:
+      self.player.health += 1
 
   def handle_timed_events(self):
     if self.seconds_elapsed % self.bomb_spawn_interval == 0:
@@ -845,8 +849,9 @@ class Game:
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
       self.spawn_enemy_ship()
     if self.seconds_elapsed % self.player_upgrade_interval_seconds == 0:
-      self.upgrade_player()
       self.generate_upgrades()
+    if self.seconds_elapsed % self.player_hp_regen_interval == 0:
+      self.regenerate_player_hp()
     pass
 
   def handle_enemy_ships(self):
@@ -1113,6 +1118,7 @@ class Game:
     # Delete redundant player bullets
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
     # Delete redundant enemy bullets
+    # TODO bug here
     self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
 
   def handle_player_enemy_ship_collision(self):
