@@ -1221,6 +1221,57 @@ class Game:
     self.upgrade_indexes = []
     self.resume()
 
+  def upgrade_enemies(self):
+    upgrade_indexes = []
+    # 0 - Increase health by {enemy_health_gain}
+    # 1 - Increase damage by {enemy_damage_gain}
+    # 2 - Increase bullets per volley by {enemy_bullets_in}
+    # 3 - Increase min and max shoot rates by {enemy_shoot_rate_gain}
+    # 4 - Increase enemy bullets width by {enemy_bullet_width_gain}
+    # 5 - Increase enemies max on screen by {max_enemies_on_screen_gain}
+    # 6 - Decrease enemy ship spawn interval by {enemy_ship_spawn_interval_decrease}
+    # 7 - Upgrade enemies bullet speed by {bullet speed gain}
+    choice_max = 7
+    # Generate {upgrades_per_interval} random upgrades
+    for i in range(self.enemy_upgrades_per_interval):
+      upgrade_choice = random.randint(0, choice_max)
+      while upgrade_choice in upgrade_indexes:
+        upgrade_choice = random.randint(0, choice_max)
+      upgrade_indexes.append(upgrade_choice)
+
+    # Iterate through upgrades choices generated and implement them
+    for i in range(len(upgrade_indexes)):
+      chosen_upgrade = upgrade_indexes[i]
+      if chosen_upgrade == 0:
+        self.enemy_ship_health += self.enemy_health_gain
+      elif chosen_upgrade == 1:
+        self.enemy_ship_bullet_damage += self.enemy_damage_gain
+      elif chosen_upgrade == 2:
+        self.enemy_ship_bullets_per_volley += self.enemy_bullets_per_volley_gain
+      elif chosen_upgrade == 3:
+        self.enemy_ship_shoot_rate_per_second_min += self.enemy_shoot_rate_gain
+        self.enemy_ship_shoot_rate_per_second_max += self.enemy_shoot_rate_gain
+      elif chosen_upgrade == 4:
+        self.enemy_ship_bullet_width += self.enemy_bullet_width_gain
+        self.enemy_ship_bullet_height += self.enemy_bullet_width_gain
+      elif chosen_upgrade == 5:
+        # Prevents max enemies on screen from going over the absolute set limit
+        temp = self.max_enemies_on_screen + self.max_enemies_on_screen_gain
+        if temp <= self.absolute_max_enemies_on_screen:
+          self.max_enemies_on_screen = self.absolute_max_enemies_on_screen
+        else:
+          self.max_enemies_on_screen = temp
+      elif chosen_upgrade == 6:
+        # Prevents enemy ship spawn interval from going over the absolute set limit
+        temp = self.enemy_ship_spawn_interval_seconds - self.enemy_ship_spawn_interval_decrease
+        if temp <= self.absolute_min_ship_spawn_interval_seconds:
+          self.enemy_ship_spawn_interval_seconds = self.absolute_min_ship_spawn_interval_seconds
+        else:
+          self.enemy_ship_spawn_interval_seconds = temp
+      elif chosen_upgrade == 7:
+        self.enemy_ship_bullet_speed_per_second += self.enemy_bullet_speed_per_second_gain
+      print(f"{chosen_upgrade} implemented on enemies")
+  
 
     
 class Menu:
