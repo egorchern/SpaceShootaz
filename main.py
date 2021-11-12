@@ -747,7 +747,7 @@ class Game:
   
   def define_enemy_scaling_variables(self):
     
-    self.enemy_upgrade_interval_seconds = 15
+    self.enemy_upgrade_interval_seconds = 10
     self.enemy_upgrades_per_interval = 2
     self.enemy_health_gain = 1
     self.enemy_damage_gain = 1
@@ -757,7 +757,19 @@ class Game:
     self.enemy_bullet_speed_per_second_gain = 15
     self.max_enemies_on_screen_gain = 2
     self.enemy_ship_spawn_interval_decrease = 2
-    
+  
+  def define_bomb_scaling_variables(self):
+    self.bomb_upgrade_interval_seconds = 12
+    self.bomb_upgrades_per_interval = 2
+    self.bomb_blast_delay_decrease = 0.4
+    self.bomb_absolute_min_blast_delay = 1.5
+    self.bomb_blast_radius_gain = 20
+    self.bomb_absolute_max_blast_radius = 700
+    self.bomb_blast_damage_gain = 1
+    self.bomb_absolute_max_blast_damage = 4
+    self.bomb_spawn_interval_decrease = 1
+    self.bomb_absolute_min_spawn_interval = 2
+
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
     # Check that point is not within no spawn radius around player
@@ -1140,10 +1152,6 @@ class Game:
     # Delete destroyed ships
     self.delete_redundant_enemies(delete_indexes_ships)
     
-    
-    
-    
-
   def handle_player_enemy_ship_collision(self):
     delete_indexes = []
     for i in range(len(self.enemy_ships_list)):
@@ -1241,6 +1249,7 @@ class Game:
     self.resume()
 
   def upgrade_enemies(self):
+    # Implement random upgrades on enemy ships
     upgrade_indexes = []
     # 0 - Increase health by {enemy_health_gain}
     # 1 - Increase damage by {enemy_damage_gain}
@@ -1291,7 +1300,50 @@ class Game:
         self.enemy_ship_bullet_speed_per_second += self.enemy_bullet_speed_per_second_gain
       print(f"{chosen_upgrade} implemented on enemies")
   
-
+  def upgrade_bombs(self):
+    # Implement upgrades on bombs
+    upgrade_indexes = []
+    # 0 - Decrease blast delay by {blast_delay_decrease}
+    # 1 - Increase blast radius by {blast_radius_gain}
+    # 2 - Increase blast damage by {blast_damage_gain}
+    # 3 - Decrease bomb spawn interval by {bomb_spawn_interval_decrease}
+    choice_max = 3
+    # Generate random upgrade choices
+    for i in range(self.bomb_upgrades_per_interval):
+      upgrade_choice = random.randint(0, choice_max)
+      while upgrade_choice in upgrade_indexes:
+        upgrade_choice = random.randint(0, choice_max)
+      upgrade_indexes.append(upgrade_choice)
+    
+    for i in range(len(upgrade_indexes)):
+      chosen_upgrade = upgrade_indexes[i]
+      if chosen_upgrade == 0:
+        # Prevent blast delay from going over min limit
+        temp = self.bomb_blast_delay - self.bomb_blast_delay_decrease
+        if temp <= self.bomb_absolute_min_blast_delay:
+          temp = self.bomb_absolute_min_blast_delay
+        else:
+          self.bomb_blast_delay = temp
+      elif chosen_upgrade == 1:
+        # Prevent blast radius from going too big
+        temp = self.bomb_blast_radius + self.bomb_blast_radius_gain
+        if temp >= self.bomb_absolute_max_blast_radius:
+          self.bomb_blast_radius = self.bomb_absolute_max_blast_radius
+        else:
+          self.bomb_blast_radius = temp
+      elif chosen_upgrade == 2:
+        # Prevenet blast damage from going over the limit
+        temp = self.bomb_blast_damage + self.bomb_blast_damage_gain
+        if temp >= self.bomb_absolute_max_blast_damage:
+          self.bomb_blast_damage = self.bomb_absolute_max_blast_damage
+        else:
+          self.bomb_blast_damage = temp
+      elif chosen_upgrade == 3:
+        temp = self.bomb_spawn_interval - self.bomb_spawn_interval_decrease
+        if temp <= self.bomb_absolute_min_spawn_interval:
+          self.bomb_spawn_interval = self.bomb_absolute_min_spawn_interval
+        else:
+          self.bomb_spawn_interval = temp
     
     
 class Menu:
