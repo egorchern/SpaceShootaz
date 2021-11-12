@@ -633,7 +633,7 @@ class Game:
     self.enemy_ships_list: list[Ship] = []
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
-    # 0 - in progress, 1 - ended
+    # 0 - in progress, 1 - ended, 2 - upgrading
     self.game_state = 0
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
@@ -644,6 +644,7 @@ class Game:
     self.define_player_initial_variables()
     self.define_enemy_initial_variables()
     self.define_bomb_initial_variables()
+    self.define_player_scaling_variables()
     self.instantiate_player()
    
     # Bind events
@@ -690,7 +691,7 @@ class Game:
   def define_player_initial_variables(self):
     self.player_width = 45
     self.player_height = 50
-    self.player_speed_per_second = 400
+    self.player_speed_per_second = 350
     self.player_bullet_width = 10
     self.player_bullet_height = 20
     self.player_bullet_speed_per_second = 500
@@ -700,7 +701,8 @@ class Game:
     self.player_health = 5
     self.player_bullets_per_valley = 1
     self.no_enemy_spawn_around_player_radius = 300
-
+    self.player_hp_regen_interval = 30
+    
   def define_enemy_initial_variables(self):
     self.enemy_ship_spawn_interval_seconds = 3
     self.max_enemies_on_screen = 2
@@ -728,6 +730,17 @@ class Game:
     self.bomb_spawn_offset_from_player = 12
     self.max_bombs_on_screen = 2
     self.absolute_max_bombs_on_screen = 8
+  
+  def define_player_scaling_variables(self):
+    self.player_upgrade_interval_seconds = 15
+    self.player_upgrade_choices = 3
+    self.player_health_gain = 2
+    self.player_damage_gain = 1
+    self.player_bullets_per_valley_gain = 1
+    self.player_shoot_rate_gain = 0.7
+    self.player_speed_gain = 50
+    self.player_hp_regen_interval_reduction = 7
+    self.player_bullet_size_gain = 3
 
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
@@ -825,12 +838,20 @@ class Game:
         self.show_blast_seconds
       )
       self.enemy_bomb_list.append(bomb)
+  
+  def regenerate_player_hp(self):
+    if self.player.health < self.player.max_health:
+      self.player.health += 1
 
   def handle_timed_events(self):
     if self.seconds_elapsed % self.bomb_spawn_interval == 0:
       self.spawn_enemy_bomb()
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
       self.spawn_enemy_ship()
+    if self.seconds_elapsed % self.player_upgrade_interval_seconds == 0:
+      self.generate_upgrades()
+    if self.seconds_elapsed % self.player_hp_regen_interval == 0:
+      self.regenerate_player_hp()
     pass
 
   def handle_enemy_ships(self):
@@ -909,13 +930,20 @@ class Game:
       self.player.move()
       # Fix for a bug where ships won't point at player if he just moves without moving mouse around
       self.point_enemy_ships_to_player()
-    elif self.controls.get("pause/unpause") == key:
+    # Pause/unpause key event trigger, only process if game not ended
+    elif self.controls.get("pause/unpause") == key and self.game_state == 0:
       # If game is paused, resume
       if self.next_frame_after_id == 0:
         self.resume()
       # If not paused, pause
       else:
         self.pause()
+        # display paused text
+        self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+    # If key is a number and the game is in upgrading state
+    elif key in [str(number) for number in range(1, self.player_upgrade_choices + 1)] and self.game_state == 2:
+      # Need to take 1 away, because upgrade choices array is 0 based
+      self.upgrade_player(int(key) - 1)
   
   def on_click(self, event):
     # Only process click if the game is not paused
@@ -930,13 +958,11 @@ class Game:
     # Cancel canvas after and assign after id = 0
     self.canvas.after_cancel(self.next_frame_after_id)
     self.next_frame_after_id = 0
-    self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
     # Function that handles what happens after players health is 0
     if self.game_state == 0:
-      self.canvas.after_cancel(self.next_frame_after_id)
-      self.next_frame_after_id = 0
+      self.pause()
       self.game_state = 1
       # Fix bug where game stops without fully displaying a frame 
       self.player.draw()
@@ -1092,6 +1118,7 @@ class Game:
     # Delete redundant player bullets
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
     # Delete redundant enemy bullets
+    # TODO bug here
     self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
 
   def handle_player_enemy_ship_collision(self):
@@ -1109,6 +1136,86 @@ class Game:
         
     
     self.delete_redundant_enemies(delete_indexes)
+
+  def generate_upgrades(self):
+    # To prevent user from upausing
+    self.game_state = 2
+    self.pause()
+    self.upgrade_indexes = []
+    # Upgrade options:
+    upgrade_texts = [
+      f"Increase max health by {self.player_health_gain} units",
+      f"Increase speed by {self.player_speed_gain} units",
+      f"Increase damage per bullet by {self.player_damage_gain} units",
+      f"Increase shoot rate by {self.player_shoot_rate_gain} seconds",
+      f"Increase bullets per valley by {self.player_bullets_per_valley_gain} bullets",
+      f"Decrease hp regen interval by {self.player_hp_regen_interval_reduction} seconds" ,
+      f"Increase player's bullet size by {self.player_bullet_size_gain} units"
+    ]
+    # 0 - Increase  max health by {player_health_gain}
+    # 1 - Increase speed by {player_speed_gain}
+    # 2 - Increase damage per bullet by {player_damage_gain}
+    # 3 - Increase shoot rate by {player_shoot_rate_gain}
+    # 4 - Increase bullets per valley by {player_bullets_per_valley_gain}
+    # 5 - Decrease hp regen interval by {player_hp_regen_interval_reduction} (can't be less than 1)
+    # 6 - Increase player's bullet size by {player_bullet_size_gain}
+    choice_max = len(upgrade_texts) - 1
+    # Generate random upgrades indexes
+    for i in range(self.player_upgrade_choices):
+      choice_index = random.randint(0, choice_max)
+      # Makes sure that upgrade choices are unique
+      while choice_index in self.upgrade_indexes:
+        choice_index = random.randint(0, choice_max)
+      self.upgrade_indexes.append(choice_index)
+    font_size = 23
+    text_vertical_margin = font_size + 12
+    y_pos = self.canvas_centre_y
+    # display choices on the screen
+    self.canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size} bold", text="Upgrade time! Press a key corresponding to chosen upgrade")
+    # Draw all upgrade choices as text
+    for i in range(len(self.upgrade_indexes)):
+      y_pos += text_vertical_margin
+      upgrade_index = self.upgrade_indexes[i]
+      self.canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size - 5} bold", text = f"{i + 1}: {upgrade_texts[upgrade_index]}")
+    
+  def upgrade_player(self, index: int):
+    # Actually implements upgrades
+    chosen_upgrade = self.upgrade_indexes[index]
+    # 0 - Increase  max health by {player_health_gain}
+    # 1 - Increase speed by {player_speed_gain}
+    # 2 - Increase damage per bullet by {player_damage_gain}
+    # 3 - Increase shoot rate by {player_shoot_rate_gain}
+    # 4 - Increase bullets per valley by {player_bullets_per_valley_gain}
+    # 5 - Decrease hp regen interval by {player_hp_regen_interval_reduction} (can't be less than 1)
+    # 6 - Increase player's bullet size by {player_bullet_size_gain}
+    if chosen_upgrade == 0:
+      self.player.health += self.player_health_gain
+      self.player.max_health += self.player_health_gain
+    elif chosen_upgrade == 1:
+      self.player.speed_per_second += self.player_speed_gain
+      self.player.speed = self.player.speed_per_second / self.player.fps
+    elif chosen_upgrade == 2:
+      self.player.bullet_damage += self.player_damage_gain
+    elif chosen_upgrade == 3:
+      self.player.shoot_rate += self.player_shoot_rate_gain
+    elif chosen_upgrade == 4:
+      self.player.bullets_per_valley += self.player_bullets_per_valley_gain
+    elif(chosen_upgrade == 5):
+      # Prevent the hp regen interval from going into negatives!
+      temp = self.player_hp_regen_interval - self.player_hp_regen_interval_reduction
+      if temp <= 1:
+        self.player_hp_regen_interval = 1
+      else:
+        self.player_hp_regen_interval = temp
+    elif (chosen_upgrade == 6):
+      self.player.bullet_width += self.player_bullet_size_gain
+      self.player.bullet_height += self.player_bullet_size_gain
+      self.player.valley_bullets_offset = 2 + self.player.bullet_width
+    
+    # Resume the game after upgrade is implemented
+    self.game_state = 0
+    self.upgrade_indexes = []
+    self.resume()
 
 
     
