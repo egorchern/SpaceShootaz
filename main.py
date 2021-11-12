@@ -737,11 +737,26 @@ class Game:
     self.player_health_gain = 2
     self.player_damage_gain = 1
     self.player_bullets_per_valley_gain = 1
+    self.player_bullets_per_volley_gain = 1
     self.player_shoot_rate_gain = 0.7
     self.player_speed_gain = 50
     self.player_hp_regen_interval_reduction = 7
     self.player_bullet_size_gain = 3
 
+  
+  def define_enemy_scaling_variables(self):
+    
+    self.enemy_upgrade_interval_seconds = 15
+    self.enemy_upgrades_per_interval = 2
+    self.enemy_health_gain = 1
+    self.enemy_damage_gain = 1
+    self.enemy_bullets_per_volley_gain = 1
+    self.enemy_shoot_rate_gain = 0.3
+    self.enemy_bullet_width_gain = 1
+    self.enemy_bullet_speed_per_second_gain = 15
+    self.max_enemies_on_screen_gain = 2
+    self.enemy_ship_spawn_interval_decrease = 2
+    
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
     # Check that point is not within no spawn radius around player
@@ -844,6 +859,7 @@ class Game:
       self.player.health += 1
 
   def handle_timed_events(self):
+    # Has all timed events checks. 
     if self.seconds_elapsed % self.bomb_spawn_interval == 0:
       self.spawn_enemy_bomb()
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
@@ -852,6 +868,8 @@ class Game:
       self.generate_upgrades()
     if self.seconds_elapsed % self.player_hp_regen_interval == 0:
       self.regenerate_player_hp()
+    if self.seconds_elapsed % self.enemy_upgrade_interval_seconds == 0:
+      self.upgrade_enemies()
     pass
 
   def handle_enemy_ships(self):
