@@ -1112,14 +1112,18 @@ class Game:
           if i not in delete_indexes_player_bullets:
             delete_indexes_player_bullets.append(i)
           break
-
-    # Delete destroyed ships
-    self.delete_redundant_enemies(delete_indexes_ships)
+    
+    # Delete redundant enemy bullets
+    self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
     # Delete redundant player bullets
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
-    # Delete redundant enemy bullets
-    # TODO bug here
-    self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
+    
+    # Delete destroyed ships
+    self.delete_redundant_enemies(delete_indexes_ships)
+    
+    
+    
+    
 
   def handle_player_enemy_ship_collision(self):
     delete_indexes = []
