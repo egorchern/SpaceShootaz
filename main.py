@@ -607,13 +607,16 @@ class Ship:
 
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
-  def __init__(self, main_window: tk.Tk, config: dict):
+  def __init__(self, main_window: tk.Tk, main_window_dimensions: dict, config: dict):
     self.canvas_dimensions = {
       "x": 1000,
-      "y" : 850
+      "y" : 880
     }
     self.main_window = main_window
+    self.main_window.columnconfigure(0, weight=1)
+    self.main_window.columnconfigure(1, weight=1)
     self.config = config
+    self.main_window_dimensions = main_window_dimensions
     self.controls = self.config.get("controls")
     self.game_config = self.config.get("game")
     self.canvas = tk.Canvas(
@@ -624,7 +627,8 @@ class Game:
       relief="solid",
       borderwidth=1
     )
-    self.canvas.grid(padx=5)
+    self.canvas.grid(padx=5, pady=5, sticky="WE")
+
     self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
     self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
     # Tkinter can't handle 60 fps reliably
@@ -656,12 +660,51 @@ class Game:
     self.instantiate_player()
     # Spawn enemy ship straight away, otherwise it is too boring at the start
     self.spawn_enemy_ship()
+    self.create_right_menu()
     # Bind events
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
-  
+
+  def create_right_menu(self):
+    self.right_menu = tk.Frame(master=self.main_window, bg="white")
+    button_font = "Arial 12"
+    score_font = "Arial 24"
+    
+    self.back_button = tk.Button(master=self.right_menu, text="Back to Menu", height=3, font=button_font)
+    self.save_button = tk.Button(master=self.right_menu, text="Save game", height=3, font=button_font)
+    self.back_button.grid(row = 0, column = 0, columnspan=1, padx= 10, sticky="EW")
+    self.save_button.grid(row = 0, column = 1, columnspan=1, padx= 10, sticky="WE")
+    self.right_menu.columnconfigure(0, weight=1)
+    self.right_menu.columnconfigure(1, weight=1)
+    self.score_label = tk.Label(self.right_menu, text=f"Score: {self.score}", font=score_font, pady=10, bg="white")
+    self.score_label.grid(row = 1, column=0, columnspan=2, sticky="EW")
+    player_info_row = tk.Frame(self.right_menu, bg="white")
+    # Need: regen, atk_speed, damage, speed
+    for i in range(4):
+      player_info_row.columnconfigure(i, weight=1)
+
+    player_label = tk.Label(player_info_row, bg="white", text="Player stats", font=score_font)
+    player_label.grid(row = 0, column = 0, columnspan=5, pady= 5, sticky="NEWS")
+    self.player_regen_label = tk.Label(player_info_row, text=f"Regen: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}", bg="white", font=button_font)
+    self.player_regen_label.grid(row = 1, column=0)
+    self.player_shoot_rate_label = tk.Label(player_info_row, text=f"Sht_rate: {self.player.shoot_rate_per_second}", bg="white", font=button_font)
+    self.player_shoot_rate_label.grid(row = 1, column= 1, padx = 2)
+    self.player_damage_label = tk.Label(player_info_row, text=f"dmg: {self.player.bullet_damage}", bg="white", font=button_font)
+    self.player_damage_label.grid(row = 1, column=2, padx=2)
+    self.player_speed_label = tk.Label(player_info_row, text=f"speed: {self.player.speed_per_second}", bg="white", font=button_font)
+    self.player_speed_label.grid(row = 1, column= 3, padx= 2)
+    player_info_row.grid(row = 2, column=0, columnspan=2, pady=5, sticky="EW")
+    self.right_menu.grid(row = 0, column = 1, sticky="NEWS", padx=10, pady=10)
+
+  def update_right_menu(self):
+    self.score_label["text"] = f"Score: {self.score}"
+    self.player_regen_label["text"] = f"Regen in: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}"
+    self.player_shoot_rate_label["text"] = f"Sht_rate: {self.player.shoot_rate_per_second}"
+    self.player_damage_label["text"] = f"dmg: {self.player.bullet_damage}"
+    self.player_speed_label["text"] = f"speed: {self.player.speed_per_second}"
+
   def increase_score(self, amount: float):
     self.score += amount
 
@@ -781,7 +824,6 @@ class Game:
     self.bomb_absolute_max_blast_damage = 4
     self.bomb_spawn_interval_decrease = 1
     self.bomb_absolute_min_spawn_interval = 2
-
   
   def define_score_variables(self):
     self.score = 0
@@ -892,6 +934,8 @@ class Game:
 
   def handle_timed_events(self):
     # Has all timed events checks. 
+    
+    
     if self.seconds_elapsed % self.bomb_spawn_interval == 0:
       self.spawn_enemy_bomb()
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
@@ -904,7 +948,6 @@ class Game:
       self.upgrade_enemies()
     if self.seconds_elapsed % self.bomb_upgrade_interval_seconds == 0:
       self.upgrade_bombs()
-    pass
     # Increment scope per second
     self.score_per_second += self.score_per_second_gain
     # Increase score
@@ -1463,7 +1506,7 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      game = Game(self.main_window, self.config)
+      game = Game(self.main_window, self.main_window_dimensions, self.config)
     pass
   
 
