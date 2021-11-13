@@ -8,6 +8,7 @@ import random
 
 
 utils = 0
+bullet_volley_offset = 6
 # Points have last two elements as metadata, so thats why it is len(points) - 2
 # On frame is a function that triggers every frame
 class Utilities:
@@ -187,6 +188,7 @@ class Utilities:
     # Calculate whether hitboxes collide using Separating Axis Theorem
     # Get all edge vectors
     #vectors = [[hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox1[4] - hitbox1[6], hitbox1[5] - hitbox1[7]], [hitbox1[6] - hitbox1[0], hitbox1[7] - hitbox1[1]], [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox2[4] - hitbox2[6], hitbox2[5] - hitbox2[7]], [hitbox2[6] - hitbox2[0], hitbox2[7] - hitbox2[1]]]
+    
     vectors = [
       [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]],
       [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]],
@@ -417,8 +419,7 @@ class Ship:
     self.bullet_color = bullet_color
     self.shot_offset = 5
     self.bullets_per_volley = bullets_per_volley
-    self.volley_bullets_offset = 2
-    self.volley_bullets_offset += self.bullet_width
+    self.volley_bullets_offset = bullet_volley_offset + self.bullet_width
     self.bullet_damage = bullet_damage
     self.health = health
     self.max_health = self.health
@@ -472,6 +473,7 @@ class Ship:
     # Calculate lengths angles from focal to points, used in tilt point calculation
     self.points = utils.calculate_points_metadata(self.points, self.focal_point)
     self.calculate_hitboxes_metadata()
+    self.calc_bounds_info()
     self.transform(self.angle)
   
   def shoot_volley(self, frame_counter: int, seconds_elapsed: int):
@@ -625,7 +627,7 @@ class Game:
     self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
     self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
     # Tkinter can't handle 60 fps reliably
-    self.fps = 45
+    self.fps = 40
     self.ms_interval = math.floor(1000 / self.fps)
     self.frame_counter = 1
     self.seconds_elapsed = 0
@@ -710,7 +712,7 @@ class Game:
   def define_enemy_initial_variables(self):
     self.max_enemies_on_screen = 1
     self.enemy_ship_spawn_interval_seconds = 8
-    self.absolute_max_enemies_on_screen = 10
+    self.absolute_max_enemies_on_screen = 6
     self.absolute_min_ship_spawn_interval_seconds = 2
     self.enemy_ship_health = 3
     self.enemy_ship_bullet_speed_per_second = 150
@@ -749,16 +751,18 @@ class Game:
   
   def define_enemy_scaling_variables(self):
     
-    self.enemy_upgrade_interval_seconds = 10
+    self.enemy_upgrade_interval_seconds = 15
     self.enemy_upgrades_per_interval = 2
     self.enemy_health_gain = 1
     self.enemy_damage_gain = 1
     self.enemy_bullets_per_volley_gain = 1
+    self.enemy_absolute_max_bullets_per_volley = 3
     self.enemy_shoot_rate_gain = 0.2
+    self.enemy_absolute_max_shoot_rate = 2.5
     self.enemy_bullet_width_gain = 1
     self.enemy_bullet_speed_per_second_gain = 10
-    self.max_enemies_on_screen_gain = 2
-    self.enemy_ship_spawn_interval_decrease = 2
+    self.max_enemies_on_screen_gain = 1
+    self.enemy_ship_spawn_interval_decrease = 1
   
   def define_bomb_scaling_variables(self):
     self.bomb_upgrade_interval_seconds = 12
@@ -1246,7 +1250,7 @@ class Game:
     elif (chosen_upgrade == 6):
       self.player.bullet_width += self.player_bullet_size_gain
       self.player.bullet_height += self.player_bullet_size_gain
-      self.player.volley_bullets_offset = 2 + self.player.bullet_width
+      self.player.volley_bullets_offset = bullet_volley_offset + self.player.bullet_width
     print(f"{chosen_upgrade} implemented on player\n")
     # Resume the game after upgrade is implemented
     self.game_state = 0
@@ -1280,10 +1284,21 @@ class Game:
       elif chosen_upgrade == 1:
         self.enemy_ship_bullet_damage += self.enemy_damage_gain
       elif chosen_upgrade == 2:
-        self.enemy_ship_bullets_per_volley += self.enemy_bullets_per_volley_gain
+        # Prevent bullets per volley from going too high
+        temp = self.enemy_ship_bullets_per_volley + self.enemy_bullets_per_volley_gain
+        if temp >= self.enemy_absolute_max_bullets_per_volley:
+          self.enemy_ship_bullets_per_volley = self.enemy_absolute_max_bullets_per_volley
+        else:
+          self.enemy_ship_bullets_per_volley = temp
       elif chosen_upgrade == 3:
-        self.enemy_ship_shoot_rate_per_second_min += self.enemy_shoot_rate_gain
-        self.enemy_ship_shoot_rate_per_second_max += self.enemy_shoot_rate_gain
+        temp = self.enemy_ship_shoot_rate_per_second_max + self.enemy_shoot_rate_gain
+        # Prevent shoot rate from going too high
+        if temp >= self.enemy_absolute_max_shoot_rate:
+          self.enemy_ship_shoot_rate_per_second_min = self.enemy_absolute_max_shoot_rate - 0.2
+          self.enemy_ship_shoot_rate_per_second_max = self.enemy_absolute_max_shoot_rate
+        else:
+          self.enemy_ship_shoot_rate_per_second_min += self.enemy_shoot_rate_gain
+          self.enemy_ship_shoot_rate_per_second_max += self.enemy_shoot_rate_gain
       elif chosen_upgrade == 4:
         self.enemy_ship_bullet_width += self.enemy_bullet_width_gain
         self.enemy_ship_bullet_height += self.enemy_bullet_width_gain
