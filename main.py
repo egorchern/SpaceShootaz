@@ -6,7 +6,9 @@ import configparser
 import pathlib
 import random
 
+
 utils = 0
+bullet_volley_offset = 6
 # Points have last two elements as metadata, so thats why it is len(points) - 2
 # On frame is a function that triggers every frame
 class Utilities:
@@ -186,6 +188,7 @@ class Utilities:
     # Calculate whether hitboxes collide using Separating Axis Theorem
     # Get all edge vectors
     #vectors = [[hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox1[4] - hitbox1[6], hitbox1[5] - hitbox1[7]], [hitbox1[6] - hitbox1[0], hitbox1[7] - hitbox1[1]], [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox2[4] - hitbox2[6], hitbox2[5] - hitbox2[7]], [hitbox2[6] - hitbox2[0], hitbox2[7] - hitbox2[1]]]
+    
     vectors = [
       [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]],
       [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]],
@@ -391,7 +394,7 @@ class Ship:
       bullet_color: str,
       bullet_damage: int,
       shoot_rate_per_second: float,
-      bullets_per_valley: int,
+      bullets_per_volley: int,
       health: int
     ):
     self.canvas = canvas
@@ -415,9 +418,8 @@ class Ship:
     self.display_hitbars = display_hitbars
     self.bullet_color = bullet_color
     self.shot_offset = 5
-    self.bullets_per_valley = bullets_per_valley
-    self.valley_bullets_offset = 2
-    self.valley_bullets_offset += self.bullet_width
+    self.bullets_per_volley = bullets_per_volley
+    self.volley_bullets_offset = bullet_volley_offset + self.bullet_width
     self.bullet_damage = bullet_damage
     self.health = health
     self.max_health = self.health
@@ -471,10 +473,11 @@ class Ship:
     # Calculate lengths angles from focal to points, used in tilt point calculation
     self.points = utils.calculate_points_metadata(self.points, self.focal_point)
     self.calculate_hitboxes_metadata()
+    self.calc_bounds_info()
     self.transform(self.angle)
   
-  def shoot_valley(self, frame_counter: int, seconds_elapsed: int):
-    # Shoots a valley of bullets_per_valley num of bullets
+  def shoot_volley(self, frame_counter: int, seconds_elapsed: int):
+    # Shoots a volley of bullets_per_volley num of bullets
     # Check whether ship allowed to shoot
     temp = frame_counter + seconds_elapsed * self.fps
     if temp > self.last_shot_at + self.shoot_rate:
@@ -482,19 +485,19 @@ class Ship:
       self.last_shot_at = temp
       # Work out initial shooting point
       initial_focal = utils.resolve_point(self.points[0], self.points[1], self.shot_offset, self.angle)
-      bullets_remaining = self.bullets_per_valley
+      bullets_remaining = self.bullets_per_volley
       # If bullets num is odd, shoot one from initial point
       if bullets_remaining % 2 == 1:
         self.shoot_bullet(initial_focal)
         bullets_remaining -= 1
       offset_coef = 1
       # If bullets num was initially even, then make offset shorter to avoid having one bullet space blank
-      if bullets_remaining == self.bullets_per_valley:
+      if bullets_remaining == self.bullets_per_volley:
           offset_coef = 0.5
       while bullets_remaining > 0:
         # Work out focal points for left bullet and right bullet, multiply offset by coefficient to move focal point along the shooting line, and shoot bullets
-        left_focal = utils.resolve_point(initial_focal[0], initial_focal[1], self.valley_bullets_offset * offset_coef, 3/2 * math.pi + self.angle)
-        right_focal = utils.resolve_point(initial_focal[0], initial_focal[1], self.valley_bullets_offset * offset_coef, 1/2 * math.pi + self.angle)
+        left_focal = utils.resolve_point(initial_focal[0], initial_focal[1], self.volley_bullets_offset * offset_coef, 3/2 * math.pi + self.angle)
+        right_focal = utils.resolve_point(initial_focal[0], initial_focal[1], self.volley_bullets_offset * offset_coef, 1/2 * math.pi + self.angle)
         self.shoot_bullet(left_focal)
         self.shoot_bullet(right_focal)
         bullets_remaining -= 2
@@ -624,7 +627,7 @@ class Game:
     self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
     self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
     # Tkinter can't handle 60 fps reliably
-    self.fps = 50
+    self.fps = 40
     self.ms_interval = math.floor(1000 / self.fps)
     self.frame_counter = 1
     self.seconds_elapsed = 0
@@ -645,8 +648,11 @@ class Game:
     self.define_enemy_initial_variables()
     self.define_bomb_initial_variables()
     self.define_player_scaling_variables()
+    self.define_enemy_scaling_variables()
+    self.define_bomb_scaling_variables()
     self.instantiate_player()
-   
+    # Spawn enemy ship straight away, otherwise it is too boring at the start
+    self.spawn_enemy_ship()
     # Bind events
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
@@ -684,7 +690,7 @@ class Game:
       self.player_color,
       self.player_bullet_damage,
       self.player_shoot_rate_per_second,
-      self.player_bullets_per_valley,
+      self.player_bullets_per_volley,
       self.player_health
     )
   
@@ -699,14 +705,15 @@ class Game:
     self.player_color = "#41bfff"
     self.player_shoot_rate_per_second = 2.5
     self.player_health = 5
-    self.player_bullets_per_valley = 1
+    self.player_bullets_per_volley = 1
     self.no_enemy_spawn_around_player_radius = 300
     self.player_hp_regen_interval = 30
     
   def define_enemy_initial_variables(self):
-    self.enemy_ship_spawn_interval_seconds = 3
-    self.max_enemies_on_screen = 2
-    self.absolute_max_enemies_on_screen = 10
+    self.max_enemies_on_screen = 1
+    self.enemy_ship_spawn_interval_seconds = 8
+    self.absolute_max_enemies_on_screen = 6
+    self.absolute_min_ship_spawn_interval_seconds = 2
     self.enemy_ship_health = 3
     self.enemy_ship_bullet_speed_per_second = 150
     self.enemy_ship_bullet_damage = 1
@@ -718,7 +725,7 @@ class Game:
     self.enemy_ship_speed_per_second = 100
     self.enemy_ship_shoot_rate_per_second_min = 0.5
     self.enemy_ship_shoot_rate_per_second_max = 0.7
-    self.enemy_ship_bullets_per_valley = 1
+    self.enemy_ship_bullets_per_volley = 1
   
   def define_bomb_initial_variables(self):
     self.show_blast_seconds = 0.3
@@ -733,14 +740,41 @@ class Game:
   
   def define_player_scaling_variables(self):
     self.player_upgrade_interval_seconds = 15
-    self.player_upgrade_choices = 3
+    self.player_upgrade_choices = 4
     self.player_health_gain = 2
     self.player_damage_gain = 1
-    self.player_bullets_per_valley_gain = 1
+    self.player_bullets_per_volley_gain = 1
     self.player_shoot_rate_gain = 0.7
     self.player_speed_gain = 50
     self.player_hp_regen_interval_reduction = 7
     self.player_bullet_size_gain = 3
+  
+  def define_enemy_scaling_variables(self):
+    
+    self.enemy_upgrade_interval_seconds = 15
+    self.enemy_upgrades_per_interval = 2
+    self.enemy_health_gain = 1
+    self.enemy_damage_gain = 1
+    self.enemy_bullets_per_volley_gain = 1
+    self.enemy_absolute_max_bullets_per_volley = 3
+    self.enemy_shoot_rate_gain = 0.2
+    self.enemy_absolute_max_shoot_rate = 2.5
+    self.enemy_bullet_width_gain = 1
+    self.enemy_bullet_speed_per_second_gain = 10
+    self.max_enemies_on_screen_gain = 1
+    self.enemy_ship_spawn_interval_decrease = 1
+  
+  def define_bomb_scaling_variables(self):
+    self.bomb_upgrade_interval_seconds = 12
+    self.bomb_upgrades_per_interval = 1
+    self.bomb_blast_delay_decrease = 0.4
+    self.bomb_absolute_min_blast_delay = 1.5
+    self.bomb_blast_radius_gain = 20
+    self.bomb_absolute_max_blast_radius = 700
+    self.bomb_blast_damage_gain = 1
+    self.bomb_absolute_max_blast_damage = 4
+    self.bomb_spawn_interval_decrease = 1
+    self.bomb_absolute_min_spawn_interval = 2
 
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
@@ -811,7 +845,7 @@ class Game:
         self.enemy_ship_color,
         self.enemy_ship_bullet_damage,
         random.uniform(self.enemy_ship_shoot_rate_per_second_min, self.enemy_ship_shoot_rate_per_second_max),
-        self.enemy_ship_bullets_per_valley,
+        self.enemy_ship_bullets_per_volley,
         self.enemy_ship_health
       )
       self.enemy_ships_list.append(enemy_ship)
@@ -844,6 +878,7 @@ class Game:
       self.player.health += 1
 
   def handle_timed_events(self):
+    # Has all timed events checks. 
     if self.seconds_elapsed % self.bomb_spawn_interval == 0:
       self.spawn_enemy_bomb()
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
@@ -852,13 +887,17 @@ class Game:
       self.generate_upgrades()
     if self.seconds_elapsed % self.player_hp_regen_interval == 0:
       self.regenerate_player_hp()
+    if self.seconds_elapsed % self.enemy_upgrade_interval_seconds == 0:
+      self.upgrade_enemies()
+    if self.seconds_elapsed % self.bomb_upgrade_interval_seconds == 0:
+      self.upgrade_bombs()
     pass
 
   def handle_enemy_ships(self):
     # Iterate through all enemy ships all handle events with them
     for i in range(len(self.enemy_ships_list)):
       enemy_ship = self.enemy_ships_list[i]
-      enemy_ship.shoot_valley(self.frame_counter, self.seconds_elapsed)
+      enemy_ship.shoot_volley(self.frame_counter, self.seconds_elapsed)
       enemy_ship.on_frame()
       stop_game = self.handle_enemy_bullets_collisions(i)
       # If stop game is True, then players hp is less or equal to 0, so call gameover
@@ -872,8 +911,9 @@ class Game:
     for i in range(len(self.enemy_bomb_list)):
       bomb = self.enemy_bomb_list[i]
       bomb.on_frame()
-      if bomb.blast_counter == bomb.blast_delay and self.is_player_in_bomb_radius(bomb):
-        self.deal_damage_to_player(bomb.blast_damage)
+      if bomb.blast_counter == bomb.blast_delay:
+        if self.is_player_in_bomb_radius(bomb):
+          self.deal_damage_to_player(bomb.blast_damage)
       is_redundant = bomb.is_redundant()
       if is_redundant:
         delete_indexes.append(i)
@@ -948,7 +988,7 @@ class Game:
   def on_click(self, event):
     # Only process click if the game is not paused
     if self.next_frame_after_id != 0:
-      self.player.shoot_valley(self.frame_counter, self.seconds_elapsed)
+      self.player.shoot_volley(self.frame_counter, self.seconds_elapsed)
   
   def resume(self):
     # Assign next after id and assign after
@@ -1112,15 +1152,15 @@ class Game:
           if i not in delete_indexes_player_bullets:
             delete_indexes_player_bullets.append(i)
           break
-
-    # Delete destroyed ships
-    self.delete_redundant_enemies(delete_indexes_ships)
+    
+    # Delete redundant enemy bullets
+    self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
     # Delete redundant player bullets
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
-    # Delete redundant enemy bullets
-    # TODO bug here
-    self.delete_redundant_enemy_bullets(delete_indexes_enemy_bullets)
-
+    
+    # Delete destroyed ships
+    self.delete_redundant_enemies(delete_indexes_ships)
+    
   def handle_player_enemy_ship_collision(self):
     delete_indexes = []
     for i in range(len(self.enemy_ships_list)):
@@ -1148,7 +1188,7 @@ class Game:
       f"Increase speed by {self.player_speed_gain} units",
       f"Increase damage per bullet by {self.player_damage_gain} units",
       f"Increase shoot rate by {self.player_shoot_rate_gain} seconds",
-      f"Increase bullets per valley by {self.player_bullets_per_valley_gain} bullets",
+      f"Increase bullets per volley by {self.player_bullets_per_volley_gain} bullets",
       f"Decrease hp regen interval by {self.player_hp_regen_interval_reduction} seconds" ,
       f"Increase player's bullet size by {self.player_bullet_size_gain} units"
     ]
@@ -1156,7 +1196,7 @@ class Game:
     # 1 - Increase speed by {player_speed_gain}
     # 2 - Increase damage per bullet by {player_damage_gain}
     # 3 - Increase shoot rate by {player_shoot_rate_gain}
-    # 4 - Increase bullets per valley by {player_bullets_per_valley_gain}
+    # 4 - Increase bullets per volley by {player_bullets_per_volley_gain}
     # 5 - Decrease hp regen interval by {player_hp_regen_interval_reduction} (can't be less than 1)
     # 6 - Increase player's bullet size by {player_bullet_size_gain}
     choice_max = len(upgrade_texts) - 1
@@ -1169,7 +1209,7 @@ class Game:
       self.upgrade_indexes.append(choice_index)
     font_size = 23
     text_vertical_margin = font_size + 12
-    y_pos = self.canvas_centre_y
+    y_pos = self.canvas_centre_y - 150
     # display choices on the screen
     self.canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size} bold", text="Upgrade time! Press a key corresponding to chosen upgrade")
     # Draw all upgrade choices as text
@@ -1185,7 +1225,7 @@ class Game:
     # 1 - Increase speed by {player_speed_gain}
     # 2 - Increase damage per bullet by {player_damage_gain}
     # 3 - Increase shoot rate by {player_shoot_rate_gain}
-    # 4 - Increase bullets per valley by {player_bullets_per_valley_gain}
+    # 4 - Increase bullets per volley by {player_bullets_per_volley_gain}
     # 5 - Decrease hp regen interval by {player_hp_regen_interval_reduction} (can't be less than 1)
     # 6 - Increase player's bullet size by {player_bullet_size_gain}
     if chosen_upgrade == 0:
@@ -1199,7 +1239,7 @@ class Game:
     elif chosen_upgrade == 3:
       self.player.shoot_rate += self.player_shoot_rate_gain
     elif chosen_upgrade == 4:
-      self.player.bullets_per_valley += self.player_bullets_per_valley_gain
+      self.player.bullets_per_volley += self.player_bullets_per_volley_gain
     elif(chosen_upgrade == 5):
       # Prevent the hp regen interval from going into negatives!
       temp = self.player_hp_regen_interval - self.player_hp_regen_interval_reduction
@@ -1210,15 +1250,123 @@ class Game:
     elif (chosen_upgrade == 6):
       self.player.bullet_width += self.player_bullet_size_gain
       self.player.bullet_height += self.player_bullet_size_gain
-      self.player.valley_bullets_offset = 2 + self.player.bullet_width
-    
+      self.player.volley_bullets_offset = bullet_volley_offset + self.player.bullet_width
+    print(f"{chosen_upgrade} implemented on player\n")
     # Resume the game after upgrade is implemented
     self.game_state = 0
     self.upgrade_indexes = []
     self.resume()
 
+  def upgrade_enemies(self):
+    # Implement random upgrades on enemy ships
+    upgrade_indexes = []
+    # 0 - Increase health by {enemy_health_gain}
+    # 1 - Increase damage by {enemy_damage_gain}
+    # 2 - Increase bullets per volley by {enemy_bullets_in}
+    # 3 - Increase min and max shoot rates by {enemy_shoot_rate_gain}
+    # 4 - Increase enemy bullets width by {enemy_bullet_width_gain}
+    # 5 - Increase enemies max on screen by {max_enemies_on_screen_gain}
+    # 6 - Decrease enemy ship spawn interval by {enemy_ship_spawn_interval_decrease}
+    # 7 - Upgrade enemies bullet speed by {bullet speed gain}
+    choice_max = 7
+    # Generate {upgrades_per_interval} random upgrades
+    for i in range(self.enemy_upgrades_per_interval):
+      upgrade_choice = random.randint(0, choice_max)
+      while upgrade_choice in upgrade_indexes:
+        upgrade_choice = random.randint(0, choice_max)
+      upgrade_indexes.append(upgrade_choice)
 
+    # Iterate through upgrades choices generated and implement them
+    for i in range(len(upgrade_indexes)):
+      chosen_upgrade = upgrade_indexes[i]
+      if chosen_upgrade == 0:
+        self.enemy_ship_health += self.enemy_health_gain
+      elif chosen_upgrade == 1:
+        self.enemy_ship_bullet_damage += self.enemy_damage_gain
+      elif chosen_upgrade == 2:
+        # Prevent bullets per volley from going too high
+        temp = self.enemy_ship_bullets_per_volley + self.enemy_bullets_per_volley_gain
+        if temp >= self.enemy_absolute_max_bullets_per_volley:
+          self.enemy_ship_bullets_per_volley = self.enemy_absolute_max_bullets_per_volley
+        else:
+          self.enemy_ship_bullets_per_volley = temp
+      elif chosen_upgrade == 3:
+        temp = self.enemy_ship_shoot_rate_per_second_max + self.enemy_shoot_rate_gain
+        # Prevent shoot rate from going too high
+        if temp >= self.enemy_absolute_max_shoot_rate:
+          self.enemy_ship_shoot_rate_per_second_min = self.enemy_absolute_max_shoot_rate - 0.2
+          self.enemy_ship_shoot_rate_per_second_max = self.enemy_absolute_max_shoot_rate
+        else:
+          self.enemy_ship_shoot_rate_per_second_min += self.enemy_shoot_rate_gain
+          self.enemy_ship_shoot_rate_per_second_max += self.enemy_shoot_rate_gain
+      elif chosen_upgrade == 4:
+        self.enemy_ship_bullet_width += self.enemy_bullet_width_gain
+        self.enemy_ship_bullet_height += self.enemy_bullet_width_gain
+      elif chosen_upgrade == 5:
+        # Prevents max enemies on screen from going over the absolute set limit
+        temp = self.max_enemies_on_screen + self.max_enemies_on_screen_gain
+        if temp <= self.absolute_max_enemies_on_screen:
+          self.max_enemies_on_screen = self.absolute_max_enemies_on_screen
+        else:
+          self.max_enemies_on_screen = temp
+      elif chosen_upgrade == 6:
+        # Prevents enemy ship spawn interval from going over the absolute set limit
+        temp = self.enemy_ship_spawn_interval_seconds - self.enemy_ship_spawn_interval_decrease
+        if temp <= self.absolute_min_ship_spawn_interval_seconds:
+          self.enemy_ship_spawn_interval_seconds = self.absolute_min_ship_spawn_interval_seconds
+        else:
+          self.enemy_ship_spawn_interval_seconds = temp
+      elif chosen_upgrade == 7:
+        self.enemy_ship_bullet_speed_per_second += self.enemy_bullet_speed_per_second_gain
+      print(f"{chosen_upgrade} implemented on enemies\n")
+  
+  def upgrade_bombs(self):
+    # Implement upgrades on bombs
+    upgrade_indexes = []
+    # 0 - Decrease blast delay by {blast_delay_decrease}
+    # 1 - Increase blast radius by {blast_radius_gain}
+    # 2 - Increase blast damage by {blast_damage_gain}
+    # 3 - Decrease bomb spawn interval by {bomb_spawn_interval_decrease}
+    choice_max = 3
+    # Generate random upgrade choices
+    for i in range(self.bomb_upgrades_per_interval):
+      upgrade_choice = random.randint(0, choice_max)
+      while upgrade_choice in upgrade_indexes:
+        upgrade_choice = random.randint(0, choice_max)
+      upgrade_indexes.append(upgrade_choice)
     
+    for i in range(len(upgrade_indexes)):
+      chosen_upgrade = upgrade_indexes[i]
+      if chosen_upgrade == 0:
+        # Prevent blast delay from going over min limit
+        temp = self.bomb_blast_delay - self.bomb_blast_delay_decrease
+        if temp <= self.bomb_absolute_min_blast_delay:
+          temp = self.bomb_absolute_min_blast_delay
+        else:
+          self.bomb_blast_delay = temp
+      elif chosen_upgrade == 1:
+        # Prevent blast radius from going too big
+        temp = self.bomb_blast_radius + self.bomb_blast_radius_gain
+        if temp >= self.bomb_absolute_max_blast_radius:
+          self.bomb_blast_radius = self.bomb_absolute_max_blast_radius
+        else:
+          self.bomb_blast_radius = temp
+      elif chosen_upgrade == 2:
+        # Prevenet blast damage from going over the limit
+        temp = self.bomb_blast_damage + self.bomb_blast_damage_gain
+        if temp >= self.bomb_absolute_max_blast_damage:
+          self.bomb_blast_damage = self.bomb_absolute_max_blast_damage
+        else:
+          self.bomb_blast_damage = temp
+      elif chosen_upgrade == 3:
+        temp = self.bomb_spawn_interval - self.bomb_spawn_interval_decrease
+        if temp <= self.bomb_absolute_min_spawn_interval:
+          self.bomb_spawn_interval = self.bomb_absolute_min_spawn_interval
+        else:
+          self.bomb_spawn_interval = temp
+      print(f"{chosen_upgrade} was implemented on bombs\n")
+    
+
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
   def __init__(self):
