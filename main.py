@@ -424,6 +424,7 @@ class Ship:
     self.health = health
     self.max_health = self.health
     self.bullet_list: list[Bullet] = []
+    self.shoot_rate_per_second = shoot_rate_per_second
     self.shoot_rate = fps / shoot_rate_per_second
     self.last_shot_at = -self.fps
     # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]], last two are metadata
@@ -650,6 +651,8 @@ class Game:
     self.define_player_scaling_variables()
     self.define_enemy_scaling_variables()
     self.define_bomb_scaling_variables()
+    self.define_score_variables()
+    
     self.instantiate_player()
     # Spawn enemy ship straight away, otherwise it is too boring at the start
     self.spawn_enemy_ship()
@@ -659,6 +662,9 @@ class Game:
     self.canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
   
+  def increase_score(self, amount: float):
+    self.score += amount
+
   def deal_damage_to_player(self, damage):
     # Too tired to put gameover checks after any damage instance to player, so created dedicated function
     # This prevents health bar from becoming wacky, since health can't get less than 0
@@ -776,6 +782,13 @@ class Game:
     self.bomb_spawn_interval_decrease = 1
     self.bomb_absolute_min_spawn_interval = 2
 
+  
+  def define_score_variables(self):
+    self.score = 0
+    self.score_per_enemy = 20
+    self.score_per_second = 1
+    self.score_per_second_gain = 0.5
+ 
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
     # Check that point is not within no spawn radius around player
@@ -892,6 +905,12 @@ class Game:
     if self.seconds_elapsed % self.bomb_upgrade_interval_seconds == 0:
       self.upgrade_bombs()
     pass
+    # Increment scope per second
+    self.score_per_second += self.score_per_second_gain
+    # Increase score
+    self.increase_score(self.score_per_second)
+    # Update side menu every second
+    self.update_right_menu()
 
   def handle_enemy_ships(self):
     # Iterate through all enemy ships all handle events with them
