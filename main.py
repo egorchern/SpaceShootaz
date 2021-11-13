@@ -1256,7 +1256,8 @@ class Game:
     elif chosen_upgrade == 2:
       self.player.bullet_damage += self.player_damage_gain
     elif chosen_upgrade == 3:
-      self.player.shoot_rate += self.player_shoot_rate_gain
+      self.player.shoot_rate_per_second = self.player.shoot_rate_per_second + self.player_shoot_rate_gain
+      self.player.shoot_rate = self.fps / self.player.shoot_rate_per_second
     elif chosen_upgrade == 4:
       self.player.bullets_per_volley += self.player_bullets_per_volley_gain
     elif(chosen_upgrade == 5):
