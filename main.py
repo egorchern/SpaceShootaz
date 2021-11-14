@@ -669,37 +669,61 @@ class Game:
 
   def create_right_menu(self):
     self.right_menu = tk.Frame(master=self.main_window, bg="white")
-    button_font = "Arial 12"
+    button_font = "Arial 13"
     score_font = "Arial 24"
-    
+    # Define buttons
     self.back_button = tk.Button(master=self.right_menu, text="Back to Menu", height=3, font=button_font)
     self.save_button = tk.Button(master=self.right_menu, text="Save game", height=3, font=button_font)
     self.back_button.grid(row = 0, column = 0, columnspan=1, padx= 10, sticky="EW")
     self.save_button.grid(row = 0, column = 1, columnspan=1, padx= 10, sticky="WE")
     self.right_menu.columnconfigure(0, weight=1)
     self.right_menu.columnconfigure(1, weight=1)
-    self.score_label = tk.Label(self.right_menu, text=f"Score: {self.score}", font=score_font, pady=10, bg="white")
-    self.score_label.grid(row = 1, column=0, columnspan=2, sticky="EW")
-    player_info_row = tk.Frame(self.right_menu, bg="white")
-    # Need: regen, atk_speed, damage, speed
-    for i in range(4):
-      player_info_row.columnconfigure(i, weight=1)
+    # Define score labels
+    score_row = tk.Frame(self.right_menu, bg="white")
+    self.score_label = tk.Label(score_row, text=f"Score: {self.score}", font=score_font, pady=10, bg="white")
+    self.score_label.grid(row = 0, column=0, columnspan=2, sticky="EW")
 
+    self.score_per_second_label = tk.Label(score_row, text=f"Score/sec: {self.score_per_second}", font=button_font, pady=5, padx=4, bg="white")
+    self.score_per_second_label.grid(row = 1, column=0)
+
+    self.score_per_enemy_label = tk.Label(score_row, text=f"Score/enemy: {self.score_per_enemy}", font=button_font, pady=5, padx=4, bg="white")
+    self.score_per_enemy_label.grid(row = 1, column=1)
+
+    score_row.grid(row = 1, column=0, columnspan=2)
+
+    player_info_row = tk.Frame(self.right_menu, bg="white")
+    # Need: hp, regen, atk_speed, damage, speed
+    for i in range(5):
+      player_info_row.columnconfigure(i, weight=1)
+    # Define player info labels
     player_label = tk.Label(player_info_row, bg="white", text="Player stats", font=score_font)
     player_label.grid(row = 0, column = 0, columnspan=5, pady= 5, sticky="NEWS")
+
+    self.player_health_label = tk.Label(player_info_row, text=f"Hp: {self.player.health}/{self.player.max_health}", bg="white", font=button_font)
+    self.player_health_label.grid(row = 1, column= 0)
+
     self.player_regen_label = tk.Label(player_info_row, text=f"Regen: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}", bg="white", font=button_font)
-    self.player_regen_label.grid(row = 1, column=0)
+    self.player_regen_label.grid(row = 1, column=1, padx= 2)
+
     self.player_shoot_rate_label = tk.Label(player_info_row, text=f"Sht_rate: {self.player.shoot_rate_per_second}", bg="white", font=button_font)
-    self.player_shoot_rate_label.grid(row = 1, column= 1, padx = 2)
+    self.player_shoot_rate_label.grid(row = 1, column= 2, padx = 2)
+
     self.player_damage_label = tk.Label(player_info_row, text=f"dmg: {self.player.bullet_damage}", bg="white", font=button_font)
-    self.player_damage_label.grid(row = 1, column=2, padx=2)
+    self.player_damage_label.grid(row = 1, column=3, padx=2)
+
     self.player_speed_label = tk.Label(player_info_row, text=f"speed: {self.player.speed_per_second}", bg="white", font=button_font)
-    self.player_speed_label.grid(row = 1, column= 3, padx= 2)
+    self.player_speed_label.grid(row = 1, column= 4, padx= 2)
+
     player_info_row.grid(row = 2, column=0, columnspan=2, pady=5, sticky="EW")
+
     self.right_menu.grid(row = 0, column = 1, sticky="NEWS", padx=10, pady=10)
 
   def update_right_menu(self):
+    # Updates labels in the right menu
     self.score_label["text"] = f"Score: {self.score}"
+    self.score_per_second_label["text"] = f"Score/sec: {self.score_per_second}"
+    self.score_per_enemy_label["text"] = f"Score/enemy: {self.score_per_enemy}"
+    self.player_health_label["text"] = f"Hp: {self.player.health}/{self.player.max_health}"
     self.player_regen_label["text"] = f"Regen in: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}"
     self.player_shoot_rate_label["text"] = f"Sht_rate: {self.player.shoot_rate_per_second}"
     self.player_damage_label["text"] = f"dmg: {self.player.bullet_damage}"
@@ -707,6 +731,8 @@ class Game:
 
   def increase_score(self, amount: float):
     self.score += amount
+    # Round the score to 1 d.p
+    self.score = round(self.score, 1)
 
   def deal_damage_to_player(self, damage):
     # Too tired to put gameover checks after any damage instance to player, so created dedicated function
@@ -752,7 +778,7 @@ class Game:
     self.player_bullet_speed_per_second = 500
     self.player_bullet_damage = 1
     self.player_color = "#41bfff"
-    self.player_shoot_rate_per_second = 2.5
+    self.player_shoot_rate_per_second = 2
     self.player_health = 5
     self.player_bullets_per_volley = 1
     self.no_enemy_spawn_around_player_radius = 300
@@ -800,7 +826,7 @@ class Game:
   
   def define_enemy_scaling_variables(self):
     
-    self.enemy_upgrade_interval_seconds = 15
+    self.enemy_upgrade_interval_seconds = 10
     self.enemy_upgrades_per_interval = 2
     self.enemy_health_gain = 1
     self.enemy_damage_gain = 1
@@ -828,8 +854,10 @@ class Game:
   def define_score_variables(self):
     self.score = 0
     self.score_per_enemy = 20
+    self.score_per_enemy_base = self.score_per_enemy
     self.score_per_second = 1
     self.score_per_second_gain = 0.5
+    self.score_enemy_multiplier = 1
  
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
@@ -952,6 +980,8 @@ class Game:
     self.score_per_second += self.score_per_second_gain
     # Increase score
     self.increase_score(self.score_per_second)
+    # Increase reward for enemies destroyed as more time pass, round to 1 d.p
+    self.score_per_enemy = round(self.score_per_enemy_base +  self.seconds_elapsed * self.score_enemy_multiplier, 1)
     # Update side menu every second
     self.update_right_menu()
 
@@ -1090,7 +1120,10 @@ class Game:
     # Delete redundant enemy ships from ships list, and add bullets to remnant list, so that they don't dissapear
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
+      # Add bullets from the destroyed ship to the remnant bullets
       self.add_bullets_to_remnant_list(self.enemy_ships_list[delete_index])
+      # Add points to score for destroying the ship
+      self.increase_score(self.score_per_enemy)
       self.enemy_ships_list.pop(delete_index)
       # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
       for j in range(len(delete_indexes)):
