@@ -5,6 +5,7 @@ import math
 import configparser
 import pathlib
 import random
+import cProfile
 
 
 utils = 0
@@ -829,9 +830,9 @@ class Game:
     self.player_hp_regen_interval = 30
     
   def define_enemy_initial_variables(self):
-    self.max_enemies_on_screen = 1
+    self.max_enemies_on_screen = 2
     self.enemy_ship_spawn_interval_seconds = 8
-    self.absolute_max_enemies_on_screen = 6
+    self.absolute_max_enemies_on_screen = 8
     self.absolute_min_ship_spawn_interval_seconds = 2
     self.enemy_ship_health = 3
     self.enemy_ship_bullet_speed_per_second = 150
@@ -871,7 +872,7 @@ class Game:
   def define_enemy_scaling_variables(self):
     
     self.enemy_upgrade_interval_seconds = 10
-    self.enemy_upgrades_per_interval = 2
+    self.enemy_upgrades_per_interval = 3
     self.enemy_health_gain = 1
     self.enemy_damage_gain = 1
     self.enemy_bullets_per_volley_gain = 1
@@ -879,9 +880,9 @@ class Game:
     self.enemy_shoot_rate_gain = 0.2
     self.enemy_absolute_max_shoot_rate = 2.5
     self.enemy_bullet_width_gain = 1
-    self.enemy_bullet_speed_per_second_gain = 10
+    self.enemy_bullet_speed_per_second_gain = 15
     self.max_enemies_on_screen_gain = 1
-    self.enemy_ship_spawn_interval_decrease = 1
+    self.enemy_ship_spawn_interval_decrease = 2
   
   def define_bomb_scaling_variables(self):
     self.bomb_upgrade_interval_seconds = 12
@@ -1054,8 +1055,10 @@ class Game:
       if is_redundant:
         delete_indexes.append(i)
     
+    
     # Dispose redundant bombs (bombs that are already exploded fully)
     self.delete_redundant_bombs(delete_indexes)
+    
 
   def on_frame(self):
     # Function for everything that happens every frame
@@ -1223,7 +1226,6 @@ class Game:
       bullet = self.remnant_bullets[i]
       bullet.move()
       bullet.draw()
-      
       #Calculate if the bullet is fully out of bounds, if so mark for deletion
       bounds_info = utils.get_bounds_info(bullet.points)
       fully_out_of_bounds = utils.is_fully_out_of_bounds(bounds_info[0], bounds_info[1], bounds_info[2], bounds_info[3], self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
@@ -1252,7 +1254,6 @@ class Game:
     # Delete everything marked for deletion
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
     self.delete_redundant_remnant_bullets(delete_indexes_remnant)
-    # Trigger gameover if game ended is set
 
   def add_bullets_to_remnant_list(self, enemy_ship: Ship):
     # Function to add dead ships bullets to remnant list, to prevent bullets from dissapearing
@@ -1597,6 +1598,8 @@ class Application:
   
 
 def main():
+  # from tkinter import filedialog
+  # tmp = filedialog.asksaveasfilename(initialdir="./", initialfile="this_save.txt")
   global utils
   utils = Utilities()
   app = Application()
@@ -1604,4 +1607,4 @@ def main():
   
 
 if __name__ == "__main__":
-  main()
+  cProfile.run("main()")
