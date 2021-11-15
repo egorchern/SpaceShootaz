@@ -1349,7 +1349,7 @@ class Game:
     elif chosen_upgrade == 2:
       self.player.bullet_damage += self.player_damage_gain
     elif chosen_upgrade == 3:
-      self.player.shoot_rate_per_second = self.player.shoot_rate_per_second + self.player_shoot_rate_gain
+      self.player.shoot_rate_per_second = round(self.player.shoot_rate_per_second + self.player_shoot_rate_gain, 1)
       self.player.shoot_rate = self.fps / self.player.shoot_rate_per_second
     elif chosen_upgrade == 4:
       self.player.bullets_per_volley += self.player_bullets_per_volley_gain
@@ -1412,6 +1412,9 @@ class Game:
         else:
           self.enemy_ship_shoot_rate_per_second_min += self.enemy_shoot_rate_gain
           self.enemy_ship_shoot_rate_per_second_max += self.enemy_shoot_rate_gain
+        # Round to prevent floating point innacurracy 
+        self.enemy_ship_shoot_rate_per_second_min = round(self.enemy_ship_shoot_rate_per_second_min, 1)
+        self.enemy_ship_shoot_rate_per_second_max = round(self.enemy_ship_shoot_rate_per_second_max, 1)
       elif chosen_upgrade == 4:
         self.enemy_ship_bullet_width += self.enemy_bullet_width_gain
         self.enemy_ship_bullet_height += self.enemy_bullet_width_gain
