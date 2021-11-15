@@ -261,12 +261,15 @@ class Bomb:
     self.blast_damage = blast_damage
     self.fps = fps
     self.image_paths = ["images/bomb_1_r.png", "images/bomb_2_r.png", "images/bomb_3_r.png", "images/bomb_4_r.png"]
+    self.len_image_paths = len(self.image_paths)
     self.blast_counter = 0
     self.blast_delay = blast_delay_in_seconds * self.fps
     self.show_blast_frames = show_blast_seconds * self.fps
+    self.blast_radius_rectangle = [self.focal_point[0] - self.blast_radius, self.focal_point[1] - self.blast_radius, self.focal_point[0] + self.blast_radius, self.focal_point[1] + self.blast_radius  ]
     self.blast_radius_width = 1
     # 5 stages, last one is actual damage taken 
-    self.bomb_stage = 0
+    self.bomb_stage = -1
+    self.is_different_stage = False
 
   def is_redundant(self):
     if self.blast_counter > self.blast_delay + self.show_blast_frames:
@@ -278,22 +281,30 @@ class Bomb:
     self.blast_counter += 1
     if self.blast_counter <= self.blast_delay + self.show_blast_frames:
       stage_percentage = self.blast_counter / self.blast_delay
-      self.bomb_stage = math.floor(stage_percentage * len(self.image_paths))
-      
+      temp = math.floor(stage_percentage * self.len_image_paths)
+      if temp != self.bomb_stage:
+        self.is_different_stage = True
+        self.bomb_stage = temp
+      else:
+        self.is_different_stage = False
+
       self.draw()
 
   def draw(self):
-    blast_radius_rectangle = [self.focal_point[0] - self.blast_radius, self.focal_point[1] - self.blast_radius, self.focal_point[0] + self.blast_radius, self.focal_point[1] + self.blast_radius  ]
-    if self.bomb_stage < 4:
-      # Instantiate image data
+    # Optimization to only instantiate new image if the stage is different
+    if self.is_different_stage and self.bomb_stage < self.len_image_paths:
       self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
+
+    if self.bomb_stage < self.len_image_paths:
+      # Instantiate image data
+      
       # Draw the bomb itself
       self.canvas.create_image(self.focal_point[0], self.focal_point[1], image=self.bomb_image)
       # Draw blast radius
-      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, width=self.blast_radius_width)
+      self.canvas.create_oval(self.blast_radius_rectangle[0], self.blast_radius_rectangle[1], self.blast_radius_rectangle[2], self.blast_radius_rectangle[3], outline=self.blast_radius_color, width=self.blast_radius_width)
     else:
       # If bomb has exploded, fill explosion radius to indicate blast
-      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color, width=self.blast_radius_width) 
+      self.canvas.create_oval(self.blast_radius_rectangle[0], self.blast_radius_rectangle[1], self.blast_radius_rectangle[2], self.blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color, width=self.blast_radius_width) 
 
 
 class Bullet:
