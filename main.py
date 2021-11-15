@@ -1180,6 +1180,12 @@ class Game:
       bullet.move()
       bullet.draw()
       
+      #Calculate if the bullet is fully out of bounds, if so mark for deletion
+      bounds_info = utils.get_bounds_info(bullet.points)
+      fully_out_of_bounds = utils.is_fully_out_of_bounds(bounds_info[0], bounds_info[1], bounds_info[2], bounds_info[3], self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
+      if fully_out_of_bounds:
+        delete_indexes_remnant.append(i)
+
       # handle collision with player
       do_collide = utils.do_objects_collide(bullet, self.player)
       if do_collide:
