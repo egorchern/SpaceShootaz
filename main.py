@@ -621,8 +621,8 @@ class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
   def __init__(self, main_window: tk.Tk, main_window_dimensions: dict, config: dict):
     self.canvas_dimensions = {
-      "x": 1000,
-      "y" : 880
+      "x": main_window_dimensions.get("x") - 440,
+      "y" : main_window_dimensions.get("y") - 20
     }
     self.main_window = main_window
     self.main_window.columnconfigure(0, weight=1)
@@ -1455,7 +1455,7 @@ class Game:
       elif chosen_upgrade == 5:
         # Prevents max enemies on screen from going over the absolute set limit
         temp = self.max_enemies_on_screen + self.max_enemies_on_screen_gain
-        if temp <= self.absolute_max_enemies_on_screen:
+        if temp >= self.absolute_max_enemies_on_screen:
           self.max_enemies_on_screen = self.absolute_max_enemies_on_screen
         else:
           self.max_enemies_on_screen = temp
@@ -1527,8 +1527,8 @@ class Application:
   # Class for the whole application, contains tkinter top window and etc.
   def __init__(self):
     self.main_window_dimensions = {
-      "x": 1440,
-      "y": 900
+      "x": 1400,
+      "y": 850
     }
     self.state = "game" # Game states: menu, game
     # Initialize the main window
