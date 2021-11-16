@@ -854,7 +854,7 @@ class Game:
     self.player_bullet_speed_per_second = 500
     self.player_bullet_damage = 1
     self.player_color = "#41bfff"
-    self.player_shoot_rate_per_second = 2
+    self.player_shoot_rate_per_second = 1.6
     self.player_health = 5
     self.player_bullets_per_volley = 1
     self.no_enemy_spawn_around_player_radius = 300
@@ -887,23 +887,24 @@ class Game:
     self.bomb_spawn_interval = 8
     self.bomb_spawn_offset_from_player = 12
     self.max_bombs_on_screen = 2
+    self.max_bombs_gain = 1
     self.absolute_max_bombs_on_screen = 8
   
   def define_player_scaling_variables(self):
     self.player_upgrade_interval_seconds = 15
     self.player_upgrade_choices = 4
-    self.player_health_gain = 2
+    self.player_health_gain = 3
     self.player_damage_gain = 1
     self.player_bullets_per_volley_gain = 1
-    self.player_shoot_rate_gain = 0.7
+    self.player_shoot_rate_gain = 0.5
     self.player_speed_gain = 50
     self.player_hp_regen_interval_reduction = 7
     self.player_bullet_size_gain = 3
   
   def define_enemy_scaling_variables(self):
     
-    self.enemy_upgrade_interval_seconds = 10
-    self.enemy_upgrades_per_interval = 3
+    self.enemy_upgrade_interval_seconds = 12
+    self.enemy_upgrades_per_interval = 2
     self.enemy_health_gain = 1
     self.enemy_damage_gain = 1
     self.enemy_bullets_per_volley_gain = 1
@@ -913,13 +914,13 @@ class Game:
     self.enemy_bullet_width_gain = 1
     self.enemy_bullet_speed_per_second_gain = 15
     self.max_enemies_on_screen_gain = 1
-    self.enemy_ship_spawn_interval_decrease = 2
+    self.enemy_ship_spawn_interval_decrease = 1
   
   def define_bomb_scaling_variables(self):
     self.bomb_upgrade_interval_seconds = 12
-    self.bomb_upgrades_per_interval = 1
-    self.bomb_blast_delay_decrease = 0.4
-    self.bomb_absolute_min_blast_delay = 1.5
+    self.bomb_upgrades_per_interval = 2
+    self.bomb_blast_delay_decrease = 0.3
+    self.bomb_absolute_min_blast_delay = 2
     self.bomb_blast_radius_gain = 20
     self.bomb_absolute_max_blast_radius = 700
     self.bomb_blast_damage_gain = 1
