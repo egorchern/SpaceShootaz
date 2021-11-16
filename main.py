@@ -5,6 +5,7 @@ import math
 import configparser
 import pathlib
 import random
+import cProfile
 
 
 utils = 0
@@ -261,12 +262,15 @@ class Bomb:
     self.blast_damage = blast_damage
     self.fps = fps
     self.image_paths = ["images/bomb_1_r.png", "images/bomb_2_r.png", "images/bomb_3_r.png", "images/bomb_4_r.png"]
+    self.len_image_paths = len(self.image_paths)
     self.blast_counter = 0
     self.blast_delay = blast_delay_in_seconds * self.fps
     self.show_blast_frames = show_blast_seconds * self.fps
+    self.blast_radius_rectangle = [self.focal_point[0] - self.blast_radius, self.focal_point[1] - self.blast_radius, self.focal_point[0] + self.blast_radius, self.focal_point[1] + self.blast_radius  ]
     self.blast_radius_width = 1
     # 5 stages, last one is actual damage taken 
-    self.bomb_stage = 0
+    self.bomb_stage = -1
+    self.is_different_stage = False
 
   def is_redundant(self):
     if self.blast_counter > self.blast_delay + self.show_blast_frames:
@@ -278,22 +282,30 @@ class Bomb:
     self.blast_counter += 1
     if self.blast_counter <= self.blast_delay + self.show_blast_frames:
       stage_percentage = self.blast_counter / self.blast_delay
-      self.bomb_stage = math.floor(stage_percentage * len(self.image_paths))
-      
+      temp = math.floor(stage_percentage * self.len_image_paths)
+      if temp != self.bomb_stage:
+        self.is_different_stage = True
+        self.bomb_stage = temp
+      else:
+        self.is_different_stage = False
+
       self.draw()
 
   def draw(self):
-    blast_radius_rectangle = [self.focal_point[0] - self.blast_radius, self.focal_point[1] - self.blast_radius, self.focal_point[0] + self.blast_radius, self.focal_point[1] + self.blast_radius  ]
-    if self.bomb_stage < 4:
-      # Instantiate image data
+    # Optimization to only instantiate new image if the stage is different
+    if self.is_different_stage and self.bomb_stage < self.len_image_paths:
       self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
+
+    if self.bomb_stage < self.len_image_paths:
+      # Instantiate image data
+      
       # Draw the bomb itself
       self.canvas.create_image(self.focal_point[0], self.focal_point[1], image=self.bomb_image)
       # Draw blast radius
-      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, width=self.blast_radius_width)
+      self.canvas.create_oval(self.blast_radius_rectangle[0], self.blast_radius_rectangle[1], self.blast_radius_rectangle[2], self.blast_radius_rectangle[3], outline=self.blast_radius_color, width=self.blast_radius_width)
     else:
       # If bomb has exploded, fill explosion radius to indicate blast
-      self.canvas.create_oval(blast_radius_rectangle[0], blast_radius_rectangle[1], blast_radius_rectangle[2], blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color, width=self.blast_radius_width) 
+      self.canvas.create_oval(self.blast_radius_rectangle[0], self.blast_radius_rectangle[1], self.blast_radius_rectangle[2], self.blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color, width=self.blast_radius_width) 
 
 
 class Bullet:
@@ -424,6 +436,7 @@ class Ship:
     self.health = health
     self.max_health = self.health
     self.bullet_list: list[Bullet] = []
+    self.shoot_rate_per_second = shoot_rate_per_second
     self.shoot_rate = fps / shoot_rate_per_second
     self.last_shot_at = -self.fps
     # Calculate starting points, tkinter requires points to be in format: [x1,y1,x2,y2,...] so thats why they are like that and not [[x1, y1], [x2, y2]], last two are metadata
@@ -606,13 +619,16 @@ class Ship:
 
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
-  def __init__(self, main_window: tk.Tk, config: dict):
+  def __init__(self, main_window: tk.Tk, main_window_dimensions: dict, config: dict):
     self.canvas_dimensions = {
-      "x": 1000,
-      "y" : 850
+      "x": main_window_dimensions.get("x") - 440,
+      "y" : main_window_dimensions.get("y") - 20
     }
     self.main_window = main_window
+    self.main_window.columnconfigure(0, weight=1)
+    self.main_window.columnconfigure(1, weight=1)
     self.config = config
+    self.main_window_dimensions = main_window_dimensions
     self.controls = self.config.get("controls")
     self.game_config = self.config.get("game")
     self.canvas = tk.Canvas(
@@ -623,7 +639,8 @@ class Game:
       relief="solid",
       borderwidth=1
     )
-    self.canvas.grid(padx=5)
+    self.canvas.grid(padx=5, pady=5, sticky="WE")
+
     self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
     self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
     # Tkinter can't handle 60 fps reliably
@@ -650,15 +667,149 @@ class Game:
     self.define_player_scaling_variables()
     self.define_enemy_scaling_variables()
     self.define_bomb_scaling_variables()
+    self.define_score_variables()
+    
     self.instantiate_player()
     # Spawn enemy ship straight away, otherwise it is too boring at the start
     self.spawn_enemy_ship()
+    self.create_right_menu()
     # Bind events
     self.canvas.bind("<Motion>", self.on_cursor_move)
     self.main_window.bind("<Key>", self.on_key_press)
     self.canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
-  
+
+  def create_right_menu(self):
+    self.right_menu = tk.Frame(master=self.main_window, bg="white")
+    button_font = "Arial 13"
+    score_font = "Arial 24"
+    # Define buttons
+    self.back_button = tk.Button(master=self.right_menu, text="Back to Menu", height=3, font=button_font)
+    self.save_button = tk.Button(master=self.right_menu, text="Save game", height=3, font=button_font)
+    self.back_button.grid(row = 0, column = 0, columnspan=1, padx= 10, sticky="EW")
+    self.save_button.grid(row = 0, column = 1, columnspan=1, padx= 10, sticky="WE")
+    self.right_menu.columnconfigure(0, weight=1)
+    self.right_menu.columnconfigure(1, weight=1)
+    # Define score labels
+    score_row = tk.Frame(self.right_menu, bg="white")
+    self.score_label = tk.Label(score_row, text=f"Score: {self.score}", font=score_font, pady=10, bg="white")
+    self.score_label.grid(row = 0, column=0, columnspan=2, sticky="EW")
+
+    self.score_per_second_label = tk.Label(score_row, text=f"Score/sec: {self.score_per_second}", font=button_font, pady=5, padx=4, bg="white")
+    self.score_per_second_label.grid(row = 1, column=0)
+
+    self.score_per_enemy_label = tk.Label(score_row, text=f"Score/enemy: {self.score_per_enemy}", font=button_font, pady=5, padx=4, bg="white")
+    self.score_per_enemy_label.grid(row = 1, column=1)
+
+    score_row.grid(row = 1, column=0, columnspan=2, pady=10)
+
+    player_info_row = tk.Frame(self.right_menu, bg="white")
+    # Need: hp, regen, atk_speed, damage, speed
+    # Define player info labels
+    self.player_label = tk.Label(player_info_row, bg="white", text=f"Player stats (upgr_in: {self.player_upgrade_interval_seconds - (self.seconds_elapsed % self.player_upgrade_interval_seconds)})", font=score_font)
+    self.player_label.grid(row = 0, column = 0, columnspan=5, pady= 5, sticky="NEWS")
+
+    self.player_health_label = tk.Label(player_info_row, text=f"Hp: {self.player.health}/{self.player.max_health}", bg="white", font=button_font)
+    self.player_health_label.grid(row = 1, column= 0)
+
+    self.player_regen_label = tk.Label(player_info_row, text=f"Regen: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}", bg="white", font=button_font)
+    self.player_regen_label.grid(row = 1, column=1, padx= 2)
+
+    self.player_shoot_rate_label = tk.Label(player_info_row, text=f"Sht_rate: {self.player.shoot_rate_per_second}", bg="white", font=button_font)
+    self.player_shoot_rate_label.grid(row = 1, column= 2, padx = 2)
+
+    self.player_damage_label = tk.Label(player_info_row, text=f"Dmg: {self.player.bullet_damage}", bg="white", font=button_font)
+    self.player_damage_label.grid(row = 1, column=3, padx=2)
+
+    self.player_speed_label = tk.Label(player_info_row, text=f"Spd: {self.player.speed_per_second}", bg="white", font=button_font)
+    self.player_speed_label.grid(row = 1, column= 4, padx= 2)
+
+    player_info_row.grid(row = 2, column=0, columnspan=2, pady=10)
+
+    # Define Enemy info labels
+    # Need: hp, atk_speed, damage, respawn_interval, max_on_screen
+
+    enemy_info_row = tk.Frame(self.right_menu, bg="white")
+
+    self.enemy_label = tk.Label(enemy_info_row, text=f"Enemy stats (upgr_in: {self.enemy_upgrade_interval_seconds - (self.seconds_elapsed % self.enemy_upgrade_interval_seconds)})", bg="white", font=score_font)
+    self.enemy_label.grid(row = 0, column= 0, columnspan=5, pady=5, sticky="NEWS")
+
+    self.enemy_health_label = tk.Label(enemy_info_row, text=f"Hp: {self.enemy_ship_health}", bg="white", font=button_font)
+    self.enemy_health_label.grid(row = 1, column=0, padx=2)
+
+    self.enemy_shoot_rate_label = tk.Label(enemy_info_row, text=f"Sht_rate: {self.enemy_ship_shoot_rate_per_second_min}-{self.enemy_ship_shoot_rate_per_second_max}", bg="white", font=button_font)
+    self.enemy_shoot_rate_label.grid(row = 1, column= 1, padx=2)
+
+    self.enemy_damage_label = tk.Label(enemy_info_row, text=f"Dmg: {self.enemy_ship_bullet_damage}", bg="white", font=button_font)
+    self.enemy_damage_label.grid(row = 1, column= 2, padx=2)
+
+    self.enemy_respawn_label = tk.Label(enemy_info_row, text=f"Rsp_in: {self.enemy_ship_spawn_interval_seconds - self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds}", bg="white", font=button_font)
+    self.enemy_respawn_label.grid(row = 1, column= 3, padx=2)
+
+    self.enemy_max_on_screen_label = tk.Label(enemy_info_row, text=f"Max: {self.max_enemies_on_screen}", bg="white", font=button_font)
+    self.enemy_max_on_screen_label.grid(row = 1, column = 4, padx=2)
+
+    enemy_info_row.grid(row = 3, column=0, columnspan=2, pady=10)
+
+    # Define bomb info labels
+    # Need delay, radius, damage, respawn_interval, max
+    bomb_info_row = tk.Frame(self.right_menu, bg="white")
+
+    self.bomb_label = tk.Label(bomb_info_row, text=f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})", bg="white", font=score_font)
+    self.bomb_label.grid(row = 0, column = 0, columnspan= 5, pady=5)
+
+    self.bomb_blast_delay_label = tk.Label(bomb_info_row, text=f"Delay: {self.bomb_blast_delay}", bg="white", font=button_font)
+    self.bomb_blast_delay_label.grid(row = 1, column = 0, padx = 2)
+
+    self.bomb_blast_radius_label = tk.Label(bomb_info_row, text=f"Radius: {self.bomb_blast_radius}", bg="white", font=button_font)
+    self.bomb_blast_radius_label.grid(row = 1, column = 1, padx = 2)
+
+    self.bomb_blast_damage_label = tk.Label(bomb_info_row, text=f"Dmg: {self.bomb_blast_damage}", bg="white", font=button_font)
+    self.bomb_blast_damage_label.grid(row = 1, column = 2, padx = 2)
+
+    self.bomb_respawn_label = tk.Label(bomb_info_row, text=f"Rsp_in: {self.bomb_spawn_interval - self.seconds_elapsed % self.bomb_spawn_interval}", bg="white", font=button_font)
+    self.bomb_respawn_label.grid(row = 1, column = 3, padx = 2)
+
+    self.bomb_max_on_screen_label = tk.Label(bomb_info_row, text=f"Max: {self.max_bombs_on_screen}", bg="white", font=button_font)
+    self.bomb_max_on_screen_label.grid(row = 1, column = 4, padx = 2)
+
+    bomb_info_row.grid(row = 4, column = 0, columnspan =2, pady=10)
+
+    self.right_menu.grid(row = 0, column = 1, sticky="NEWS", padx=10, pady=10)
+
+  def update_right_menu(self):
+    # Updates labels in the right menu
+    # Update score lables
+    self.score_label["text"] = f"Score: {self.score}"
+    self.score_per_second_label["text"] = f"Score/sec: {self.score_per_second}"
+    self.score_per_enemy_label["text"] = f"Score/enemy: {self.score_per_enemy}"
+    # Update player labels
+    self.player_label["text"] = f"Player stats (upgr_in: {self.player_upgrade_interval_seconds - (self.seconds_elapsed % self.player_upgrade_interval_seconds)})"
+    self.player_health_label["text"] = f"Hp: {self.player.health}/{self.player.max_health}"
+    self.player_regen_label["text"] = f"Regen: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}"
+    self.player_shoot_rate_label["text"] = f"Sht_rate: {self.player.shoot_rate_per_second}"
+    self.player_damage_label["text"] = f"Dmg: {self.player.bullet_damage}"
+    self.player_speed_label["text"] = f"Spd: {self.player.speed_per_second}"
+    # Update enemy labels
+    self.enemy_label["text"] = f"Enemy stats (upgr_in: {self.enemy_upgrade_interval_seconds - (self.seconds_elapsed % self.enemy_upgrade_interval_seconds)})"
+    self.enemy_health_label["text"] = f"Hp: {self.enemy_ship_health}"
+    self.enemy_shoot_rate_label["text"] = f"Sht_rate: {self.enemy_ship_shoot_rate_per_second_min}-{self.enemy_ship_shoot_rate_per_second_max}"
+    self.enemy_damage_label["text"] = f"Dmg: {self.enemy_ship_bullet_damage}"
+    self.enemy_respawn_label["text"] = f"Rsp_in: {self.enemy_ship_spawn_interval_seconds - self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds}"
+    self.enemy_max_on_screen_label["text"] = f"Max: {self.max_enemies_on_screen}"
+    # Update bomb labels
+    self.bomb_label["text"] = f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})"
+    self.bomb_blast_delay_label["text"] = f"Delay: {self.bomb_blast_delay}"
+    self.bomb_blast_radius_label["text"] = f"Radius: {self.bomb_blast_radius}"
+    self.bomb_blast_damage_label["text"] = f"Dmg: {self.bomb_blast_damage}"
+    self.bomb_respawn_label["text"] = f"Rsp_in: {self.bomb_spawn_interval - self.seconds_elapsed % self.bomb_spawn_interval}"
+    self.bomb_max_on_screen_label["text"] = f"Max: {self.max_bombs_on_screen}"
+
+  def increase_score(self, amount: float):
+    self.score += amount
+    # Round the score to 1 d.p
+    self.score = round(self.score, 1)
+
   def deal_damage_to_player(self, damage):
     # Too tired to put gameover checks after any damage instance to player, so created dedicated function
     # This prevents health bar from becoming wacky, since health can't get less than 0
@@ -703,16 +854,16 @@ class Game:
     self.player_bullet_speed_per_second = 500
     self.player_bullet_damage = 1
     self.player_color = "#41bfff"
-    self.player_shoot_rate_per_second = 2.5
+    self.player_shoot_rate_per_second = 1.6
     self.player_health = 5
     self.player_bullets_per_volley = 1
     self.no_enemy_spawn_around_player_radius = 300
     self.player_hp_regen_interval = 30
     
   def define_enemy_initial_variables(self):
-    self.max_enemies_on_screen = 1
+    self.max_enemies_on_screen = 2
     self.enemy_ship_spawn_interval_seconds = 8
-    self.absolute_max_enemies_on_screen = 6
+    self.absolute_max_enemies_on_screen = 8
     self.absolute_min_ship_spawn_interval_seconds = 2
     self.enemy_ship_health = 3
     self.enemy_ship_bullet_speed_per_second = 150
@@ -736,22 +887,23 @@ class Game:
     self.bomb_spawn_interval = 8
     self.bomb_spawn_offset_from_player = 12
     self.max_bombs_on_screen = 2
+    self.max_bombs_gain = 1
     self.absolute_max_bombs_on_screen = 8
   
   def define_player_scaling_variables(self):
     self.player_upgrade_interval_seconds = 15
     self.player_upgrade_choices = 4
-    self.player_health_gain = 2
+    self.player_health_gain = 3
     self.player_damage_gain = 1
     self.player_bullets_per_volley_gain = 1
-    self.player_shoot_rate_gain = 0.7
+    self.player_shoot_rate_gain = 0.5
     self.player_speed_gain = 50
     self.player_hp_regen_interval_reduction = 7
     self.player_bullet_size_gain = 3
   
   def define_enemy_scaling_variables(self):
     
-    self.enemy_upgrade_interval_seconds = 15
+    self.enemy_upgrade_interval_seconds = 12
     self.enemy_upgrades_per_interval = 2
     self.enemy_health_gain = 1
     self.enemy_damage_gain = 1
@@ -760,22 +912,30 @@ class Game:
     self.enemy_shoot_rate_gain = 0.2
     self.enemy_absolute_max_shoot_rate = 2.5
     self.enemy_bullet_width_gain = 1
-    self.enemy_bullet_speed_per_second_gain = 10
+    self.enemy_bullet_speed_per_second_gain = 15
     self.max_enemies_on_screen_gain = 1
     self.enemy_ship_spawn_interval_decrease = 1
   
   def define_bomb_scaling_variables(self):
     self.bomb_upgrade_interval_seconds = 12
-    self.bomb_upgrades_per_interval = 1
-    self.bomb_blast_delay_decrease = 0.4
-    self.bomb_absolute_min_blast_delay = 1.5
+    self.bomb_upgrades_per_interval = 2
+    self.bomb_blast_delay_decrease = 0.3
+    self.bomb_absolute_min_blast_delay = 2
     self.bomb_blast_radius_gain = 20
     self.bomb_absolute_max_blast_radius = 700
     self.bomb_blast_damage_gain = 1
     self.bomb_absolute_max_blast_damage = 4
     self.bomb_spawn_interval_decrease = 1
     self.bomb_absolute_min_spawn_interval = 2
-
+  
+  def define_score_variables(self):
+    self.score = 0
+    self.score_per_enemy = 20
+    self.score_per_enemy_base = self.score_per_enemy
+    self.score_per_second = 1
+    self.score_per_second_gain = 0.5
+    self.score_enemy_multiplier = 1
+ 
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
     # Check that point is not within no spawn radius around player
@@ -879,6 +1039,8 @@ class Game:
 
   def handle_timed_events(self):
     # Has all timed events checks. 
+    
+    
     if self.seconds_elapsed % self.bomb_spawn_interval == 0:
       self.spawn_enemy_bomb()
     if self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds == 0:
@@ -891,7 +1053,14 @@ class Game:
       self.upgrade_enemies()
     if self.seconds_elapsed % self.bomb_upgrade_interval_seconds == 0:
       self.upgrade_bombs()
-    pass
+    # Increment scope per second
+    self.score_per_second += self.score_per_second_gain
+    # Increase score
+    self.increase_score(self.score_per_second)
+    # Increase reward for enemies destroyed as more time pass, round to 1 d.p
+    self.score_per_enemy = round(self.score_per_enemy_base +  self.seconds_elapsed * self.score_enemy_multiplier, 1)
+    # Update side menu every second
+    self.update_right_menu()
 
   def handle_enemy_ships(self):
     # Iterate through all enemy ships all handle events with them
@@ -918,8 +1087,10 @@ class Game:
       if is_redundant:
         delete_indexes.append(i)
     
+    
     # Dispose redundant bombs (bombs that are already exploded fully)
     self.delete_redundant_bombs(delete_indexes)
+    
 
   def on_frame(self):
     # Function for everything that happens every frame
@@ -1028,7 +1199,10 @@ class Game:
     # Delete redundant enemy ships from ships list, and add bullets to remnant list, so that they don't dissapear
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
+      # Add bullets from the destroyed ship to the remnant bullets
       self.add_bullets_to_remnant_list(self.enemy_ships_list[delete_index])
+      # Add points to score for destroying the ship
+      self.increase_score(self.score_per_enemy)
       self.enemy_ships_list.pop(delete_index)
       # When something is deleted, indexes to the right shift to left, so need to adjust delete indexes bigget than deleted index
       for j in range(len(delete_indexes)):
@@ -1084,7 +1258,12 @@ class Game:
       bullet = self.remnant_bullets[i]
       bullet.move()
       bullet.draw()
-      
+      #Calculate if the bullet is fully out of bounds, if so mark for deletion
+      bounds_info = utils.get_bounds_info(bullet.points)
+      fully_out_of_bounds = utils.is_fully_out_of_bounds(bounds_info[0], bounds_info[1], bounds_info[2], bounds_info[3], self.canvas_dimensions.get("x"), self.canvas_dimensions.get("y"))
+      if fully_out_of_bounds:
+        delete_indexes_remnant.append(i)
+
       # handle collision with player
       do_collide = utils.do_objects_collide(bullet, self.player)
       if do_collide:
@@ -1107,7 +1286,6 @@ class Game:
     # Delete everything marked for deletion
     self.delete_redundant_player_bullets(delete_indexes_player_bullets)
     self.delete_redundant_remnant_bullets(delete_indexes_remnant)
-    # Trigger gameover if game ended is set
 
   def add_bullets_to_remnant_list(self, enemy_ship: Ship):
     # Function to add dead ships bullets to remnant list, to prevent bullets from dissapearing
@@ -1237,7 +1415,8 @@ class Game:
     elif chosen_upgrade == 2:
       self.player.bullet_damage += self.player_damage_gain
     elif chosen_upgrade == 3:
-      self.player.shoot_rate += self.player_shoot_rate_gain
+      self.player.shoot_rate_per_second = round(self.player.shoot_rate_per_second + self.player_shoot_rate_gain, 1)
+      self.player.shoot_rate = self.fps / self.player.shoot_rate_per_second
     elif chosen_upgrade == 4:
       self.player.bullets_per_volley += self.player_bullets_per_volley_gain
     elif(chosen_upgrade == 5):
@@ -1299,13 +1478,16 @@ class Game:
         else:
           self.enemy_ship_shoot_rate_per_second_min += self.enemy_shoot_rate_gain
           self.enemy_ship_shoot_rate_per_second_max += self.enemy_shoot_rate_gain
+        # Round to prevent floating point innacurracy 
+        self.enemy_ship_shoot_rate_per_second_min = round(self.enemy_ship_shoot_rate_per_second_min, 1)
+        self.enemy_ship_shoot_rate_per_second_max = round(self.enemy_ship_shoot_rate_per_second_max, 1)
       elif chosen_upgrade == 4:
         self.enemy_ship_bullet_width += self.enemy_bullet_width_gain
         self.enemy_ship_bullet_height += self.enemy_bullet_width_gain
       elif chosen_upgrade == 5:
         # Prevents max enemies on screen from going over the absolute set limit
         temp = self.max_enemies_on_screen + self.max_enemies_on_screen_gain
-        if temp <= self.absolute_max_enemies_on_screen:
+        if temp >= self.absolute_max_enemies_on_screen:
           self.max_enemies_on_screen = self.absolute_max_enemies_on_screen
         else:
           self.max_enemies_on_screen = temp
@@ -1327,7 +1509,8 @@ class Game:
     # 1 - Increase blast radius by {blast_radius_gain}
     # 2 - Increase blast damage by {blast_damage_gain}
     # 3 - Decrease bomb spawn interval by {bomb_spawn_interval_decrease}
-    choice_max = 3
+    # 4 - Increase max_bombs 
+    choice_max = 4
     # Generate random upgrade choices
     for i in range(self.bomb_upgrades_per_interval):
       upgrade_choice = random.randint(0, choice_max)
@@ -1344,6 +1527,8 @@ class Game:
           temp = self.bomb_absolute_min_blast_delay
         else:
           self.bomb_blast_delay = temp
+        # Prevent floating point errors
+        self.bomb_blast_delay = round(self.bomb_blast_delay, 1)
       elif chosen_upgrade == 1:
         # Prevent blast radius from going too big
         temp = self.bomb_blast_radius + self.bomb_blast_radius_gain
@@ -1364,6 +1549,13 @@ class Game:
           self.bomb_spawn_interval = self.bomb_absolute_min_spawn_interval
         else:
           self.bomb_spawn_interval = temp
+      elif chosen_upgrade == 4:
+        temp = self.max_bombs_on_screen + self.max_bombs_gain
+        if temp >= self.absolute_max_bombs_on_screen:
+          self.max_bombs_on_screen = self.absolute_max_bombs_on_screen
+        else:
+          self.max_bombs_on_screen = temp
+
       print(f"{chosen_upgrade} was implemented on bombs\n")
     
 
@@ -1377,8 +1569,8 @@ class Application:
   # Class for the whole application, contains tkinter top window and etc.
   def __init__(self):
     self.main_window_dimensions = {
-      "x": 1440,
-      "y": 900
+      "x": 1400,
+      "y": 850
     }
     self.state = "game" # Game states: menu, game
     # Initialize the main window
@@ -1443,11 +1635,13 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      game = Game(self.main_window, self.config)
+      game = Game(self.main_window, self.main_window_dimensions, self.config)
     pass
   
 
 def main():
+  # from tkinter import filedialog
+  # tmp = filedialog.asksaveasfilename(initialdir="./", initialfile="this_save.txt")
   global utils
   utils = Utilities()
   app = Application()
@@ -1455,4 +1649,4 @@ def main():
   
 
 if __name__ == "__main__":
-  main()
+  cProfile.run("main()")
