@@ -751,6 +751,30 @@ class Game:
 
     enemy_info_row.grid(row = 3, column=0, columnspan=2, pady=10)
 
+    # Define bomb info labels
+    # Need delay, radius, damage, respawn_interval, max
+    bomb_info_row = tk.Frame(self.right_menu, bg="white")
+
+    self.bomb_label = tk.Label(bomb_info_row, text=f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})", bg="white", font=score_font)
+    self.bomb_label.grid(row = 0, column = 0, columnspan= 5, pady=5)
+
+    self.bomb_blast_delay_label = tk.Label(bomb_info_row, text=f"Delay: {self.bomb_blast_delay}", bg="white", font=button_font)
+    self.bomb_blast_delay_label.grid(row = 1, column = 0, padx = 2)
+
+    self.bomb_blast_radius_label = tk.Label(bomb_info_row, text=f"Radius: {self.bomb_blast_radius}", bg="white", font=button_font)
+    self.bomb_blast_radius_label.grid(row = 1, column = 1, padx = 2)
+
+    self.bomb_blast_damage_label = tk.Label(bomb_info_row, text=f"Dmg: {self.bomb_blast_damage}", bg="white", font=button_font)
+    self.bomb_blast_damage_label.grid(row = 1, column = 2, padx = 2)
+
+    self.bomb_respawn_label = tk.Label(bomb_info_row, text=f"Rsp_in: {self.bomb_spawn_interval - self.seconds_elapsed % self.bomb_spawn_interval}", bg="white", font=button_font)
+    self.bomb_respawn_label.grid(row = 1, column = 3, padx = 2)
+
+    self.bomb_max_on_screen_label = tk.Label(bomb_info_row, text=f"Max: {self.max_bombs_on_screen}", bg="white", font=button_font)
+    self.bomb_max_on_screen_label.grid(row = 1, column = 4, padx = 2)
+
+    bomb_info_row.grid(row = 4, column = 0, columnspan =2, pady=10)
+
     self.right_menu.grid(row = 0, column = 1, sticky="NEWS", padx=10, pady=10)
 
   def update_right_menu(self):
@@ -773,6 +797,13 @@ class Game:
     self.enemy_damage_label["text"] = f"Dmg: {self.enemy_ship_bullet_damage}"
     self.enemy_respawn_label["text"] = f"Rsp_in: {self.enemy_ship_spawn_interval_seconds - self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds}"
     self.enemy_max_on_screen_label["text"] = f"Max: {self.max_enemies_on_screen}"
+    # Update bomb labels
+    self.bomb_label["text"] = f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})"
+    self.bomb_blast_delay_label["text"] = f"Delay: {self.bomb_blast_delay}"
+    self.bomb_blast_radius_label["text"] = f"Radius: {self.bomb_blast_radius}"
+    self.bomb_blast_damage_label["text"] = f"Dmg: {self.bomb_blast_damage}"
+    self.bomb_respawn_label["text"] = f"Rsp_in: {self.bomb_spawn_interval - self.seconds_elapsed % self.bomb_spawn_interval}"
+    self.bomb_max_on_screen_label["text"] = f"Max: {self.max_bombs_on_screen}"
 
   def increase_score(self, amount: float):
     self.score += amount
