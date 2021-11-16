@@ -1477,7 +1477,8 @@ class Game:
     # 1 - Increase blast radius by {blast_radius_gain}
     # 2 - Increase blast damage by {blast_damage_gain}
     # 3 - Decrease bomb spawn interval by {bomb_spawn_interval_decrease}
-    choice_max = 3
+    # 4 - Increase max_bombs 
+    choice_max = 4
     # Generate random upgrade choices
     for i in range(self.bomb_upgrades_per_interval):
       upgrade_choice = random.randint(0, choice_max)
@@ -1494,6 +1495,8 @@ class Game:
           temp = self.bomb_absolute_min_blast_delay
         else:
           self.bomb_blast_delay = temp
+        # Prevent floating point errors
+        self.bomb_blast_delay = round(self.bomb_blast_delay, 1)
       elif chosen_upgrade == 1:
         # Prevent blast radius from going too big
         temp = self.bomb_blast_radius + self.bomb_blast_radius_gain
@@ -1514,6 +1517,13 @@ class Game:
           self.bomb_spawn_interval = self.bomb_absolute_min_spawn_interval
         else:
           self.bomb_spawn_interval = temp
+      elif chosen_upgrade == 4:
+        temp = self.max_bombs_on_screen + self.max_bombs_gain
+        if temp >= self.absolute_max_bombs_on_screen:
+          self.max_bombs_on_screen = self.absolute_max_bombs_on_screen
+        else:
+          self.max_bombs_on_screen = temp
+
       print(f"{chosen_upgrade} was implemented on bombs\n")
     
 
