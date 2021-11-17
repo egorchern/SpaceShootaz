@@ -1,4 +1,5 @@
 # Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester 16321 Python coursework
+# Window size: 1366 x 768
 # Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
 import tkinter as tk
 import math
@@ -653,7 +654,7 @@ class Game:
     self.enemy_ships_list: list[Ship] = []
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
-    # 0 - in progress, 1 - ended, 2 - upgrading
+    # 0 - in progress, 1 - ended, 2 - upgrading, 3 - boss keyed
     self.game_state = 0
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
@@ -1151,6 +1152,16 @@ class Game:
         self.pause()
         # display paused text
         self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+    elif self.controls.get("boss_key") == key:
+      # If not in the boss key, pause and display spreadsheet
+      if self.game_state != 3:
+        self.pause()
+        self.display_spreadsheet_image()
+      # If in boss key, return to normal game operation
+      else:
+        self.delete_spreadsheet_image()
+        self.resume()
+
     # If key is a number and the game is in upgrading state
     elif key in [str(number) for number in range(1, self.player_upgrade_choices + 1)] and self.game_state == 2:
       # Need to take 1 away, because upgrade choices array is 0 based
@@ -1557,7 +1568,14 @@ class Game:
           self.max_bombs_on_screen = temp
 
       print(f"{chosen_upgrade} was implemented on bombs\n")
-    
+  
+  def display_spreadsheet_image(self):
+    self.game_state = 3
+    pass
+  
+  def delete_spreadsheet_image(self):
+    self.game_state = 0
+    pass
 
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
@@ -1569,8 +1587,8 @@ class Application:
   # Class for the whole application, contains tkinter top window and etc.
   def __init__(self):
     self.main_window_dimensions = {
-      "x": 1400,
-      "y": 800
+      "x": 1366,
+      "y": 768
     }
     self.state = "game" # Game states: menu, game
     # Initialize the main window
