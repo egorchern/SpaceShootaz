@@ -1,5 +1,5 @@
 # Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester 16321 Python coursework
-# Window size: 1366 x 768
+# Window size: 1600 x 900
 # Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
 import tkinter as tk
 import math
@@ -632,6 +632,7 @@ class Game:
     self.main_window_dimensions = main_window_dimensions
     self.controls = self.config.get("controls")
     self.game_config = self.config.get("game")
+    self.spreadsheet_image = tk.PhotoImage(file="images/spreadsheet.PNG")
     self.canvas = tk.Canvas(
       master=main_window,
       width=self.canvas_dimensions.get("x"),
@@ -1570,12 +1571,18 @@ class Game:
       print(f"{chosen_upgrade} was implemented on bombs\n")
   
   def display_spreadsheet_image(self):
+    # Function to display spreadsheet image on top of everything
+    # Set state to boss-keyed
     self.game_state = 3
-    pass
+    # Needs to be self. so that can be removed in the remove function
+    self.spreadsheet_overlay = tk.Label(image=self.spreadsheet_image)
+    # Place over the existing content
+    self.spreadsheet_overlay.grid(row = 0, column = 0, columnspan = 2, sticky = "NSEW")
   
   def delete_spreadsheet_image(self):
+    self.spreadsheet_overlay.destroy()
     self.game_state = 0
-    pass
+    
 
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
