@@ -1570,18 +1570,30 @@ class Application:
   def __init__(self):
     self.main_window_dimensions = {
       "x": 1400,
-      "y": 850
+      "y": 800
     }
     self.state = "game" # Game states: menu, game
     # Initialize the main window
-    self.main_window = tk.Tk()
-    self.main_window.title("SpaceShootaz")
-    self.main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}")
-    self.main_window.configure(bg='white')
-    self.main_window.resizable(False, False)
+    self.configure_main_window()
     self.parse_config()
     self.on_app_state_change()
     self.main_window.mainloop()
+
+  def configure_main_window(self):
+    # Initializes the main_window
+    self.main_window = tk.Tk()
+    self.main_window.title("SpaceShootaz")
+    self.main_window.update_idletasks()
+    # Get position for placing top left corner of the window
+    x = int((self.main_window.winfo_screenwidth() - self.main_window_dimensions.get("x")) / 2)
+    # - 30 is to account for the vertical navbar most OS have
+    y = int((self.main_window.winfo_screenheight() - self.main_window_dimensions.get("y")) / 2) - 30
+    self.main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}+{x}+{y}")
+    self.main_window.configure(bg='white')
+    self.main_window.resizable(False, False)
+    
+    
+    
 
   def create_new_config(self):
     # Creates a new config.ini file with standard settings below
