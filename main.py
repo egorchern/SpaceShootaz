@@ -1587,8 +1587,8 @@ class Application:
   # Class for the whole application, contains tkinter top window and etc.
   def __init__(self):
     self.main_window_dimensions = {
-      "x": 1366,
-      "y": 768
+      "x": 1600,
+      "y": 900
     }
     self.state = "game" # Game states: menu, game
     # Initialize the main window
@@ -1680,3 +1680,5 @@ def main():
 
 if __name__ == "__main__":
   cProfile.run("main()")
+
+#TODO: save game, leaderboard, cheats, menu
