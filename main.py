@@ -686,14 +686,17 @@ class Game:
     self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
 
   def create_right_menu(self):
+    self.right_menu = {
+
+    }
     self.right_menu["right_menu"] = tk.Frame(master=main_window, bg="white")
     button_font = "Arial 13"
     score_font = "Arial 24"
     # Define buttons
-    self.back_button = tk.Button(master=self.right_menu["right_menu"], text="Back to Menu", height=3, font=button_font)
-    self.save_button = tk.Button(master=self.right_menu["right_menu"], text="Save game", height=3, font=button_font)
-    self.back_button.grid(row = 0, column = 0, columnspan=1, padx= 10, sticky="EW")
-    self.save_button.grid(row = 0, column = 1, columnspan=1, padx= 10, sticky="WE")
+    self.right_menu["back_button"] = tk.Button(master=self.right_menu["right_menu"], text="Back to Menu", height=3, font=button_font)
+    self.right_menu["save_button"] = tk.Button(master=self.right_menu["right_menu"], text="Save game", height=3, font=button_font)
+    self.right_menu["back_button"].grid(row = 0, column = 0, columnspan=1, padx= 10, sticky="EW")
+    self.right_menu["save_button"].grid(row = 0, column = 1, columnspan=1, padx= 10, sticky="WE")
     self.right_menu["right_menu"].columnconfigure(0, weight=1)
     self.right_menu["right_menu"].columnconfigure(1, weight=1)
     # Define score labels
@@ -701,34 +704,34 @@ class Game:
     self.right_menu["score_label"] = tk.Label(score_row, text=f"Score: {self.score}", font=score_font, pady=10, bg="white")
     self.right_menu["score_label"].grid(row = 0, column=0, columnspan=2, sticky="EW")
 
-    self.score_per_second_label = tk.Label(score_row, text=f"Score/sec: {self.score_per_second}", font=button_font, pady=5, padx=4, bg="white")
-    self.score_per_second_label.grid(row = 1, column=0)
+    self.right_menu["score_per_second_label"] = tk.Label(score_row, text=f"Score/sec: {self.score_per_second}", font=button_font, pady=5, padx=4, bg="white")
+    self.right_menu["score_per_second_label"].grid(row = 1, column=0)
 
-    self.score_per_enemy_label = tk.Label(score_row, text=f"Score/enemy: {self.score_per_enemy}", font=button_font, pady=5, padx=4, bg="white")
-    self.score_per_enemy_label.grid(row = 1, column=1)
+    self.right_menu["score_per_enemy_label"] = tk.Label(score_row, text=f"Score/enemy: {self.score_per_enemy}", font=button_font, pady=5, padx=4, bg="white")
+    self.right_menu["score_per_enemy_label"].grid(row = 1, column=1)
 
     score_row.grid(row = 1, column=0, columnspan=2, pady=10)
 
     player_info_row = tk.Frame(self.right_menu["right_menu"], bg="white")
     # Need: hp, regen, atk_speed, damage, speed
     # Define player info labels
-    self.player_label = tk.Label(player_info_row, bg="white", text=f"Player stats (upgr_in: {self.player_upgrade_interval_seconds - (self.seconds_elapsed % self.player_upgrade_interval_seconds)})", font=score_font)
-    self.player_label.grid(row = 0, column = 0, columnspan=5, pady= 5, sticky="NEWS")
+    self.right_menu["player_label"] = tk.Label(player_info_row, bg="white", text=f"Player stats (upgr_in: {self.player_upgrade_interval_seconds - (self.seconds_elapsed % self.player_upgrade_interval_seconds)})", font=score_font)
+    self.right_menu["player_label"].grid(row = 0, column = 0, columnspan=5, pady= 5, sticky="NEWS")
 
-    self.player_health_label = tk.Label(player_info_row, text=f"Hp: {self.player.health}/{self.player.max_health}", bg="white", font=button_font)
-    self.player_health_label.grid(row = 1, column= 0)
+    self.right_menu["self.player_health_label"] = tk.Label(player_info_row, text=f"Hp: {self.player.health}/{self.player.max_health}", bg="white", font=button_font)
+    self.right_menu["self.player_health_label"].grid(row = 1, column= 0)
 
-    self.player_regen_label = tk.Label(player_info_row, text=f"Regen: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}", bg="white", font=button_font)
-    self.player_regen_label.grid(row = 1, column=1, padx= 2)
+    self.right_menu["player_regen_label"] = tk.Label(player_info_row, text=f"Regen: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}", bg="white", font=button_font)
+    self.right_menu["player_regen_label"].grid(row = 1, column=1, padx= 2)
 
-    self.player_shoot_rate_label = tk.Label(player_info_row, text=f"Sht_rate: {self.player.shoot_rate_per_second}", bg="white", font=button_font)
-    self.player_shoot_rate_label.grid(row = 1, column= 2, padx = 2)
+    self.right_menu["player_shoot_rate_label"] = tk.Label(player_info_row, text=f"Sht_rate: {self.player.shoot_rate_per_second}", bg="white", font=button_font)
+    self.right_menu["player_shoot_rate_label"].grid(row = 1, column= 2, padx = 2)
 
-    self.player_damage_label = tk.Label(player_info_row, text=f"Dmg: {self.player.bullet_damage}", bg="white", font=button_font)
-    self.player_damage_label.grid(row = 1, column=3, padx=2)
+    self.right_menu["player_damage_label"] = tk.Label(player_info_row, text=f"Dmg: {self.player.bullet_damage}", bg="white", font=button_font)
+    self.right_menu["player_damage_label"].grid(row = 1, column=3, padx=2)
 
-    self.player_speed_label = tk.Label(player_info_row, text=f"Spd: {self.player.speed_per_second}", bg="white", font=button_font)
-    self.player_speed_label.grid(row = 1, column= 4, padx= 2)
+    self.right_menu["player_speed_label"] = tk.Label(player_info_row, text=f"Spd: {self.player.speed_per_second}", bg="white", font=button_font)
+    self.right_menu["player_speed_label"].grid(row = 1, column= 4, padx= 2)
 
     player_info_row.grid(row = 2, column=0, columnspan=2, pady=10)
 
@@ -737,23 +740,23 @@ class Game:
 
     enemy_info_row = tk.Frame(self.right_menu["right_menu"], bg="white")
 
-    self.enemy_label = tk.Label(enemy_info_row, text=f"Enemy stats (upgr_in: {self.enemy_upgrade_interval_seconds - (self.seconds_elapsed % self.enemy_upgrade_interval_seconds)})", bg="white", font=score_font)
-    self.enemy_label.grid(row = 0, column= 0, columnspan=5, pady=5, sticky="NEWS")
+    self.right_menu["enemy_label"] = tk.Label(enemy_info_row, text=f"Enemy stats (upgr_in: {self.enemy_upgrade_interval_seconds - (self.seconds_elapsed % self.enemy_upgrade_interval_seconds)})", bg="white", font=score_font)
+    self.right_menu["enemy_label"].grid(row = 0, column= 0, columnspan=5, pady=5, sticky="NEWS")
 
-    self.enemy_health_label = tk.Label(enemy_info_row, text=f"Hp: {self.enemy_ship_health}", bg="white", font=button_font)
-    self.enemy_health_label.grid(row = 1, column=0, padx=2)
+    self.right_menu["enemy_health_label"] = tk.Label(enemy_info_row, text=f"Hp: {self.enemy_ship_health}", bg="white", font=button_font)
+    self.right_menu["enemy_health_label"].grid(row = 1, column=0, padx=2)
 
-    self.enemy_shoot_rate_label = tk.Label(enemy_info_row, text=f"Sht_rate: {self.enemy_ship_shoot_rate_per_second_min}-{self.enemy_ship_shoot_rate_per_second_max}", bg="white", font=button_font)
-    self.enemy_shoot_rate_label.grid(row = 1, column= 1, padx=2)
+    self.right_menu["enemy_shoot_rate_label"] = tk.Label(enemy_info_row, text=f"Sht_rate: {self.enemy_ship_shoot_rate_per_second_min}-{self.enemy_ship_shoot_rate_per_second_max}", bg="white", font=button_font)
+    self.right_menu["enemy_shoot_rate_label"].grid(row = 1, column= 1, padx=2)
 
-    self.enemy_damage_label = tk.Label(enemy_info_row, text=f"Dmg: {self.enemy_ship_bullet_damage}", bg="white", font=button_font)
-    self.enemy_damage_label.grid(row = 1, column= 2, padx=2)
+    self.right_menu["enemy_damage_label"] = tk.Label(enemy_info_row, text=f"Dmg: {self.enemy_ship_bullet_damage}", bg="white", font=button_font)
+    self.right_menu["enemy_damage_label"].grid(row = 1, column= 2, padx=2)
 
-    self.enemy_respawn_label = tk.Label(enemy_info_row, text=f"Rsp_in: {self.enemy_ship_spawn_interval_seconds - self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds}", bg="white", font=button_font)
-    self.enemy_respawn_label.grid(row = 1, column= 3, padx=2)
+    self.right_menu["enemy_respawn_label"] = tk.Label(enemy_info_row, text=f"Rsp_in: {self.enemy_ship_spawn_interval_seconds - self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds}", bg="white", font=button_font)
+    self.right_menu["enemy_respawn_label"].grid(row = 1, column= 3, padx=2)
 
-    self.enemy_max_on_screen_label = tk.Label(enemy_info_row, text=f"Max: {self.max_enemies_on_screen}", bg="white", font=button_font)
-    self.enemy_max_on_screen_label.grid(row = 1, column = 4, padx=2)
+    self.right_menu["enemy_max_on_screen_label"] = tk.Label(enemy_info_row, text=f"Max: {self.max_enemies_on_screen}", bg="white", font=button_font)
+    self.right_menu["enemy_max_on_screen_label"].grid(row = 1, column = 4, padx=2)
 
     enemy_info_row.grid(row = 3, column=0, columnspan=2, pady=10)
 
@@ -761,58 +764,58 @@ class Game:
     # Need delay, radius, damage, respawn_interval, max
     bomb_info_row = tk.Frame(self.right_menu["right_menu"], bg="white")
 
-    self.bomb_label = tk.Label(bomb_info_row, text=f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})", bg="white", font=score_font)
-    self.bomb_label.grid(row = 0, column = 0, columnspan= 5, pady=5)
+    self.right_menu["bomb_labell"] = tk.Label(bomb_info_row, text=f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})", bg="white", font=score_font)
+    self.right_menu["bomb_labell"].grid(row = 0, column = 0, columnspan= 5, pady=5)
 
-    self.bomb_blast_delay_label = tk.Label(bomb_info_row, text=f"Delay: {self.bomb_blast_delay}", bg="white", font=button_font)
-    self.bomb_blast_delay_label.grid(row = 1, column = 0, padx = 2)
+    self.right_menu["bomb_blast_delay_label"] = tk.Label(bomb_info_row, text=f"Delay: {self.bomb_blast_delay}", bg="white", font=button_font)
+    self.right_menu["bomb_blast_delay_label"].grid(row = 1, column = 0, padx = 2)
 
-    self.bomb_blast_radius_label = tk.Label(bomb_info_row, text=f"Radius: {self.bomb_blast_radius}", bg="white", font=button_font)
-    self.bomb_blast_radius_label.grid(row = 1, column = 1, padx = 2)
+    self.right_menu["bomb_blast_radius_label"] = tk.Label(bomb_info_row, text=f"Radius: {self.bomb_blast_radius}", bg="white", font=button_font)
+    self.right_menu["bomb_blast_radius_label"].grid(row = 1, column = 1, padx = 2)
 
-    self.bomb_blast_damage_label = tk.Label(bomb_info_row, text=f"Dmg: {self.bomb_blast_damage}", bg="white", font=button_font)
-    self.bomb_blast_damage_label.grid(row = 1, column = 2, padx = 2)
+    self.right_menu["bomb_blast_damage_labell"] = tk.Label(bomb_info_row, text=f"Dmg: {self.bomb_blast_damage}", bg="white", font=button_font)
+    self.right_menu["bomb_blast_damage_labell"].grid(row = 1, column = 2, padx = 2)
 
-    self.bomb_respawn_label = tk.Label(bomb_info_row, text=f"Rsp_in: {self.bomb_spawn_interval - self.seconds_elapsed % self.bomb_spawn_interval}", bg="white", font=button_font)
-    self.bomb_respawn_label.grid(row = 1, column = 3, padx = 2)
+    self.right_menu["bomb_respawn_label"] = tk.Label(bomb_info_row, text=f"Rsp_in: {self.bomb_spawn_interval - self.seconds_elapsed % self.bomb_spawn_interval}", bg="white", font=button_font)
+    self.right_menu["bomb_respawn_label"].grid(row = 1, column = 3, padx = 2)
 
-    self.bomb_max_on_screen_label = tk.Label(bomb_info_row, text=f"Max: {self.max_bombs_on_screen}", bg="white", font=button_font)
-    self.bomb_max_on_screen_label.grid(row = 1, column = 4, padx = 2)
+    self.right_menu["bomb_max_on_screen_label"] = tk.Label(bomb_info_row, text=f"Max: {self.max_bombs_on_screen}", bg="white", font=button_font)
+    self.right_menu["bomb_max_on_screen_label"].grid(row = 1, column = 4, padx = 2)
 
     bomb_info_row.grid(row = 4, column = 0, columnspan =2, pady=10)
 
     self.right_menu["right_menu"].grid(row = 0, column = 1, sticky="NEWS", padx=10, pady=10)
 
     # Bind save game button
-    self.save_button.bind("<Button-1>", self.save_game)
+    self.right_menu["save_button"].bind("<Button-1>", self.save_game)
 
   def update_right_menu(self):
     # Updates labels in the right menu
     # Update score lables
     self.right_menu["score_label"]["text"] = f"Score: {self.score}"
-    self.score_per_second_label["text"] = f"Score/sec: {self.score_per_second}"
-    self.score_per_enemy_label["text"] = f"Score/enemy: {self.score_per_enemy}"
+    self.right_menu["score_per_second_label"]["text"] = f"Score/sec: {self.score_per_second}"
+    self.right_menu["score_per_enemy_label"]["text"] = f"Score/enemy: {self.score_per_enemy}"
     # Update player labels
-    self.player_label["text"] = f"Player stats (upgr_in: {self.player_upgrade_interval_seconds - (self.seconds_elapsed % self.player_upgrade_interval_seconds)})"
-    self.player_health_label["text"] = f"Hp: {self.player.health}/{self.player.max_health}"
-    self.player_regen_label["text"] = f"Regen: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}"
-    self.player_shoot_rate_label["text"] = f"Sht_rate: {self.player.shoot_rate_per_second}"
-    self.player_damage_label["text"] = f"Dmg: {self.player.bullet_damage}"
-    self.player_speed_label["text"] = f"Spd: {self.player.speed_per_second}"
+    self.right_menu["player_label"]["text"] = f"Player stats (upgr_in: {self.player_upgrade_interval_seconds - (self.seconds_elapsed % self.player_upgrade_interval_seconds)})"
+    self.right_menu["self.player_health_label"]["text"] = f"Hp: {self.player.health}/{self.player.max_health}"
+    self.right_menu["player_regen_label"]["text"] = f"Regen: {self.player_hp_regen_interval - (self.seconds_elapsed % self.player_hp_regen_interval)}"
+    self.right_menu["player_shoot_rate_label"]["text"] = f"Sht_rate: {self.player.shoot_rate_per_second}"
+    self.right_menu["player_damage_label"]["text"] = f"Dmg: {self.player.bullet_damage}"
+    self.right_menu["player_speed_label"]["text"] = f"Spd: {self.player.speed_per_second}"
     # Update enemy labels
-    self.enemy_label["text"] = f"Enemy stats (upgr_in: {self.enemy_upgrade_interval_seconds - (self.seconds_elapsed % self.enemy_upgrade_interval_seconds)})"
-    self.enemy_health_label["text"] = f"Hp: {self.enemy_ship_health}"
-    self.enemy_shoot_rate_label["text"] = f"Sht_rate: {self.enemy_ship_shoot_rate_per_second_min}-{self.enemy_ship_shoot_rate_per_second_max}"
-    self.enemy_damage_label["text"] = f"Dmg: {self.enemy_ship_bullet_damage}"
-    self.enemy_respawn_label["text"] = f"Rsp_in: {self.enemy_ship_spawn_interval_seconds - self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds}"
-    self.enemy_max_on_screen_label["text"] = f"Max: {self.max_enemies_on_screen}"
+    self.right_menu["enemy_label"]["text"] = f"Enemy stats (upgr_in: {self.enemy_upgrade_interval_seconds - (self.seconds_elapsed % self.enemy_upgrade_interval_seconds)})"
+    self.right_menu["enemy_health_label"]["text"] = f"Hp: {self.enemy_ship_health}"
+    self.right_menu["enemy_shoot_rate_label"]["text"] = f"Sht_rate: {self.enemy_ship_shoot_rate_per_second_min}-{self.enemy_ship_shoot_rate_per_second_max}"
+    self.right_menu["enemy_damage_label"]["text"] = f"Dmg: {self.enemy_ship_bullet_damage}"
+    self.right_menu["enemy_respawn_label"]["text"] = f"Rsp_in: {self.enemy_ship_spawn_interval_seconds - self.seconds_elapsed % self.enemy_ship_spawn_interval_seconds}"
+    self.right_menu["enemy_max_on_screen_label"]["text"] = f"Max: {self.max_enemies_on_screen}"
     # Update bomb labels
-    self.bomb_label["text"] = f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})"
-    self.bomb_blast_delay_label["text"] = f"Delay: {self.bomb_blast_delay}"
-    self.bomb_blast_radius_label["text"] = f"Radius: {self.bomb_blast_radius}"
-    self.bomb_blast_damage_label["text"] = f"Dmg: {self.bomb_blast_damage}"
-    self.bomb_respawn_label["text"] = f"Rsp_in: {self.bomb_spawn_interval - self.seconds_elapsed % self.bomb_spawn_interval}"
-    self.bomb_max_on_screen_label["text"] = f"Max: {self.max_bombs_on_screen}"
+    self.right_menu["bomb_labell"]["text"] = f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})"
+    self.right_menu["bomb_blast_delay_label"]["text"] = f"Delay: {self.bomb_blast_delay}"
+    self.right_menu["bomb_blast_radius_label"]["text"] = f"Radius: {self.bomb_blast_radius}"
+    self.right_menu["bomb_blast_damage_labell"]["text"] = f"Dmg: {self.bomb_blast_damage}"
+    self.right_menu["bomb_respawn_label"]["text"] = f"Rsp_in: {self.bomb_spawn_interval - self.seconds_elapsed % self.bomb_spawn_interval}"
+    self.right_menu["bomb_max_on_screen_label"]["text"] = f"Max: {self.max_bombs_on_screen}"
 
   def increase_score(self, amount: float):
     self.score += amount
