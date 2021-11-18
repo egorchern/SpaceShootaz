@@ -6,11 +6,14 @@ import math
 import configparser
 import pathlib
 import random
+import pickle
 import cProfile
-
+from tkinter import filedialog
 
 utils = 0
 bullet_volley_offset = 6
+main_window = None
+Canvas = None
 # Points have last two elements as metadata, so thats why it is len(points) - 2
 # On frame is a function that triggers every frame
 class Utilities:
@@ -257,7 +260,7 @@ class Bomb:
     show_blast_seconds: float
   ):
     self.focal_point = focal_point
-    self.canvas = canvas
+    
     self.blast_radius = blast_radius
     self.blast_radius_color = blast_radius_color
     self.blast_damage = blast_damage
@@ -301,19 +304,18 @@ class Bomb:
       # Instantiate image data
       
       # Draw the bomb itself
-      self.canvas.create_image(self.focal_point[0], self.focal_point[1], image=self.bomb_image)
+      canvas.create_image(self.focal_point[0], self.focal_point[1], image=self.bomb_image)
       # Draw blast radius
-      self.canvas.create_oval(self.blast_radius_rectangle[0], self.blast_radius_rectangle[1], self.blast_radius_rectangle[2], self.blast_radius_rectangle[3], outline=self.blast_radius_color, width=self.blast_radius_width)
+      canvas.create_oval(self.blast_radius_rectangle[0], self.blast_radius_rectangle[1], self.blast_radius_rectangle[2], self.blast_radius_rectangle[3], outline=self.blast_radius_color, width=self.blast_radius_width)
     else:
       # If bomb has exploded, fill explosion radius to indicate blast
-      self.canvas.create_oval(self.blast_radius_rectangle[0], self.blast_radius_rectangle[1], self.blast_radius_rectangle[2], self.blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color, width=self.blast_radius_width) 
+      canvas.create_oval(self.blast_radius_rectangle[0], self.blast_radius_rectangle[1], self.blast_radius_rectangle[2], self.blast_radius_rectangle[3], outline=self.blast_radius_color, fill=self.blast_radius_color, width=self.blast_radius_width) 
 
 
 class Bullet:
   # Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation
   def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, damage, angle, fps, color, display_hitboxes):
-    self.canvas = canvas
-    self.canvas_dimensions = canvas_dimensions
+    canvas_dimensions = canvas_dimensions
     self.width = width
     self.height = height
     self.focal_point = focal_point
@@ -373,14 +375,14 @@ class Bullet:
   def draw_hitboxes(self):
     # Draws the box via lines
     for hitbox in self.hitboxes:
-      self.canvas.create_line(hitbox[0], hitbox[1], hitbox[2], hitbox[3])
-      self.canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
-      self.canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
-      self.canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
+      canvas.create_line(hitbox[0], hitbox[1], hitbox[2], hitbox[3])
+      canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
+      canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
+      canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
 
   def draw(self):
     # Draws the bullet
-    self.canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
+    canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
     # If hitboxes display is on, display hitboxes of the ship
     if self.display_hitboxes:
       self.draw_hitboxes()
@@ -410,7 +412,7 @@ class Ship:
       bullets_per_volley: int,
       health: int
     ):
-    self.canvas = canvas
+    
     self.canvas_dimensions = canvas_dimensions
     self.ship_width = width
     self.ship_height = height
@@ -534,7 +536,7 @@ class Ship:
   
   def shoot_bullet(self, focal_point: list):
     # Simply creates a new bullet at some focal_point and adds it to the bullet list
-    bullet = Bullet(self.canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, focal_point, self.bullet_speed, self.bullet_damage, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
+    bullet = Bullet(canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, focal_point, self.bullet_speed, self.bullet_damage, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
     self.bullet_list.append(bullet)
     
   def calculate_hitboxes_metadata(self):
@@ -553,10 +555,10 @@ class Ship:
   def draw_hitboxes(self):
     # Draws the box via lines
     for hitbox in self.hitboxes:
-      self.canvas.create_line(hitbox[0], hitbox[1], hitbox[2], hitbox[3])
-      self.canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
-      self.canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
-      self.canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
+      canvas.create_line(hitbox[0], hitbox[1], hitbox[2], hitbox[3])
+      canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
+      canvas.create_line(hitbox[4], hitbox[5], hitbox[6], hitbox[7])
+      canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
 
   def draw_healthbar(self):
     healthbar_height = 10
@@ -566,11 +568,11 @@ class Ship:
     missing_health = self.max_health - self.health
     missing_health_percentage = missing_health / self.max_health
     # First, create present health rectangle using min_x and min_y as top left corner of rectangle, and max_x and min_y + healthbar_height as right bottom corner
-    self.canvas.create_rectangle(self.bounds_info[0], self.bounds_info[2] - healthbar_offset - healthbar_height, self.bounds_info[1], self.bounds_info[2] - healthbar_offset, fill= health_present_color)
+    canvas.create_rectangle(self.bounds_info[0], self.bounds_info[2] - healthbar_offset - healthbar_height, self.bounds_info[1], self.bounds_info[2] - healthbar_offset, fill= health_present_color)
     # Only draw missing health if there is missing health
     if missing_health > 0:
       # Then, create missing health rectangle, calcl difference in min_x and max_x and multiply by missing_health percent to find needed width of missing health portion. Draw over present health bar
-      self.canvas.create_rectangle(self.bounds_info[1] - missing_health_percentage * (self.bounds_info[1] - self.bounds_info[0]), self.bounds_info[2] - healthbar_offset - healthbar_height, self.bounds_info[1], self.bounds_info[2] - healthbar_offset, fill=health_absent_color)
+      canvas.create_rectangle(self.bounds_info[1] - missing_health_percentage * (self.bounds_info[1] - self.bounds_info[0]), self.bounds_info[2] - healthbar_offset - healthbar_height, self.bounds_info[1], self.bounds_info[2] - healthbar_offset, fill=health_absent_color)
 
   def delete_redundant_bullets(self):
     # Deletes entries from bullet list if the bullet is completely out of field
@@ -601,7 +603,7 @@ class Ship:
 
   def draw(self):
     # Draw ship
-    self.canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
+    canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
     # Driver code for drawing all bullets
     for i in range(len(self.bullet_list)):
       bullet = self.bullet_list[i]
@@ -620,20 +622,22 @@ class Ship:
 
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
-  def __init__(self, main_window: tk.Tk, main_window_dimensions: dict, config: dict):
-    self.canvas_dimensions = {
-      "x": main_window_dimensions.get("x") - 440,
-      "y" : main_window_dimensions.get("y") - 20
-    }
-    self.main_window = main_window
-    self.main_window.columnconfigure(0, weight=1)
-    self.main_window.columnconfigure(1, weight=1)
+  def __init__(self, main_window_dimensions: dict, config: dict):
+    
+    
+    main_window.columnconfigure(0, weight=1)
+    main_window.columnconfigure(1, weight=1)
     self.config = config
     self.main_window_dimensions = main_window_dimensions
     self.controls = self.config.get("controls")
     self.game_config = self.config.get("game")
-    self.spreadsheet_image = tk.PhotoImage(file="images/spreadsheet.PNG")
-    self.canvas = tk.Canvas(
+    self.canvas_dimensions = {
+      "x": self.main_window_dimensions.get("x") - 440,
+      "y" : self.main_window_dimensions.get("y") - 20
+    }
+    self.right_menu = {}
+    global canvas
+    canvas = tk.Canvas(
       master=main_window,
       width=self.canvas_dimensions.get("x"),
       height=self.canvas_dimensions.get("y"),
@@ -641,7 +645,7 @@ class Game:
       relief="solid",
       borderwidth=1
     )
-    self.canvas.grid(padx=5, pady=5, sticky="WE")
+    canvas.grid(padx=5, pady=5, sticky="WE")
 
     self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
     self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
@@ -676,26 +680,26 @@ class Game:
     self.spawn_enemy_ship()
     self.create_right_menu()
     # Bind events
-    self.canvas.bind("<Motion>", self.on_cursor_move)
-    self.main_window.bind("<Key>", self.on_key_press)
-    self.canvas.bind("<Button-1>", self.on_click)
-    self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
+    canvas.bind("<Motion>", self.on_cursor_move)
+    main_window.bind("<Key>", self.on_key_press)
+    canvas.bind("<Button-1>", self.on_click)
+    self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
 
   def create_right_menu(self):
-    self.right_menu = tk.Frame(master=self.main_window, bg="white")
+    self.right_menu["right_menu"] = tk.Frame(master=main_window, bg="white")
     button_font = "Arial 13"
     score_font = "Arial 24"
     # Define buttons
-    self.back_button = tk.Button(master=self.right_menu, text="Back to Menu", height=3, font=button_font)
-    self.save_button = tk.Button(master=self.right_menu, text="Save game", height=3, font=button_font)
+    self.back_button = tk.Button(master=self.right_menu["right_menu"], text="Back to Menu", height=3, font=button_font)
+    self.save_button = tk.Button(master=self.right_menu["right_menu"], text="Save game", height=3, font=button_font)
     self.back_button.grid(row = 0, column = 0, columnspan=1, padx= 10, sticky="EW")
     self.save_button.grid(row = 0, column = 1, columnspan=1, padx= 10, sticky="WE")
-    self.right_menu.columnconfigure(0, weight=1)
-    self.right_menu.columnconfigure(1, weight=1)
+    self.right_menu["right_menu"].columnconfigure(0, weight=1)
+    self.right_menu["right_menu"].columnconfigure(1, weight=1)
     # Define score labels
-    score_row = tk.Frame(self.right_menu, bg="white")
-    self.score_label = tk.Label(score_row, text=f"Score: {self.score}", font=score_font, pady=10, bg="white")
-    self.score_label.grid(row = 0, column=0, columnspan=2, sticky="EW")
+    score_row = tk.Frame(self.right_menu["right_menu"], bg="white")
+    self.right_menu["score_label"] = tk.Label(score_row, text=f"Score: {self.score}", font=score_font, pady=10, bg="white")
+    self.right_menu["score_label"].grid(row = 0, column=0, columnspan=2, sticky="EW")
 
     self.score_per_second_label = tk.Label(score_row, text=f"Score/sec: {self.score_per_second}", font=button_font, pady=5, padx=4, bg="white")
     self.score_per_second_label.grid(row = 1, column=0)
@@ -705,7 +709,7 @@ class Game:
 
     score_row.grid(row = 1, column=0, columnspan=2, pady=10)
 
-    player_info_row = tk.Frame(self.right_menu, bg="white")
+    player_info_row = tk.Frame(self.right_menu["right_menu"], bg="white")
     # Need: hp, regen, atk_speed, damage, speed
     # Define player info labels
     self.player_label = tk.Label(player_info_row, bg="white", text=f"Player stats (upgr_in: {self.player_upgrade_interval_seconds - (self.seconds_elapsed % self.player_upgrade_interval_seconds)})", font=score_font)
@@ -731,7 +735,7 @@ class Game:
     # Define Enemy info labels
     # Need: hp, atk_speed, damage, respawn_interval, max_on_screen
 
-    enemy_info_row = tk.Frame(self.right_menu, bg="white")
+    enemy_info_row = tk.Frame(self.right_menu["right_menu"], bg="white")
 
     self.enemy_label = tk.Label(enemy_info_row, text=f"Enemy stats (upgr_in: {self.enemy_upgrade_interval_seconds - (self.seconds_elapsed % self.enemy_upgrade_interval_seconds)})", bg="white", font=score_font)
     self.enemy_label.grid(row = 0, column= 0, columnspan=5, pady=5, sticky="NEWS")
@@ -755,7 +759,7 @@ class Game:
 
     # Define bomb info labels
     # Need delay, radius, damage, respawn_interval, max
-    bomb_info_row = tk.Frame(self.right_menu, bg="white")
+    bomb_info_row = tk.Frame(self.right_menu["right_menu"], bg="white")
 
     self.bomb_label = tk.Label(bomb_info_row, text=f"Bomb stats (upgr_in: {self.bomb_upgrade_interval_seconds - self.seconds_elapsed % self.bomb_upgrade_interval_seconds})", bg="white", font=score_font)
     self.bomb_label.grid(row = 0, column = 0, columnspan= 5, pady=5)
@@ -777,12 +781,15 @@ class Game:
 
     bomb_info_row.grid(row = 4, column = 0, columnspan =2, pady=10)
 
-    self.right_menu.grid(row = 0, column = 1, sticky="NEWS", padx=10, pady=10)
+    self.right_menu["right_menu"].grid(row = 0, column = 1, sticky="NEWS", padx=10, pady=10)
+
+    # Bind save game button
+    self.save_button.bind("<Button-1>", self.save_game)
 
   def update_right_menu(self):
     # Updates labels in the right menu
     # Update score lables
-    self.score_label["text"] = f"Score: {self.score}"
+    self.right_menu["score_label"]["text"] = f"Score: {self.score}"
     self.score_per_second_label["text"] = f"Score/sec: {self.score_per_second}"
     self.score_per_enemy_label["text"] = f"Score/enemy: {self.score_per_enemy}"
     # Update player labels
@@ -826,7 +833,7 @@ class Game:
     
   def instantiate_player(self):
     self.player = Ship(
-      self.canvas,
+      canvas,
       self.player_width,
       self.player_height,
       [self.canvas_centre_x, self.canvas_centre_y],
@@ -990,7 +997,7 @@ class Game:
       # Calc angle to player, to avoid bug with user not moving mouse and ships are forever stuck shooting away from player
       angle_to_player = utils.resolve_angle(spawn_point[0], spawn_point[1], self.player.focal_point[0], self.player.focal_point[1])
       enemy_ship = Ship(
-        self.canvas,
+        canvas,
         self.enemy_ship_width,
         self.enemy_ship_height,
         spawn_point,
@@ -1024,7 +1031,7 @@ class Game:
     if len(self.enemy_bomb_list) < self.max_bombs_on_screen:
       spawn_point = [self.player.focal_point[0] + difference(), self.player.focal_point[1] + difference()]
       bomb = Bomb(
-        self.canvas, 
+        canvas, 
         spawn_point.copy(),
         self.bomb_blast_delay,
         self.bomb_blast_radius,
@@ -1093,11 +1100,10 @@ class Game:
     # Dispose redundant bombs (bombs that are already exploded fully)
     self.delete_redundant_bombs(delete_indexes)
     
-
   def on_frame(self):
     # Function for everything that happens every frame
     # Deletes everything from the canvas
-    self.canvas.delete("all")
+    canvas.delete("all")
     # ORDER IS IMPORTANT
     # first handle bombs, since player moves outside of frames, no problems with frame desync. Also to allow player to be over the bomb texture
     self.handle_bombs()
@@ -1117,7 +1123,7 @@ class Game:
     
     # Fix desync issues, where depending on timing, pause would be ignored
     if self.next_frame_after_id != 0:
-      self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
+      self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
     pass
   
   def point_enemy_ships_to_player(self):
@@ -1152,7 +1158,7 @@ class Game:
       else:
         self.pause()
         # display paused text
-        self.canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+        canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
     elif self.controls.get("boss_key") == key:
       # If not in the boss key, pause and display spreadsheet
       if self.game_state != 3:
@@ -1175,11 +1181,11 @@ class Game:
   
   def resume(self):
     # Assign next after id and assign after
-    self.next_frame_after_id = self.canvas.after(self.ms_interval, self.on_frame)
+    self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
 
   def pause(self):
     # Cancel canvas after and assign after id = 0
-    self.canvas.after_cancel(self.next_frame_after_id)
+    canvas.after_cancel(self.next_frame_after_id)
     self.next_frame_after_id = 0
   
   def gameover(self):
@@ -1401,12 +1407,12 @@ class Game:
     text_vertical_margin = font_size + 12
     y_pos = self.canvas_centre_y - 150
     # display choices on the screen
-    self.canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size} bold", text="Upgrade time! Press a key corresponding to chosen upgrade")
+    canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size} bold", text="Upgrade time! Press a key corresponding to chosen upgrade")
     # Draw all upgrade choices as text
     for i in range(len(self.upgrade_indexes)):
       y_pos += text_vertical_margin
       upgrade_index = self.upgrade_indexes[i]
-      self.canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size - 5} bold", text = f"{i + 1}: {upgrade_texts[upgrade_index]}")
+      canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size - 5} bold", text = f"{i + 1}: {upgrade_texts[upgrade_index]}")
     
   def upgrade_player(self, index: int):
     # Actually implements upgrades
@@ -1575,14 +1581,24 @@ class Game:
     # Set state to boss-keyed
     self.game_state = 3
     # Needs to be self. so that can be removed in the remove function
-    self.spreadsheet_overlay = tk.Label(image=self.spreadsheet_image)
+    self.spreadsheet_overlay = tk.Label(image=tk.PhotoImage(file="images/spreadsheet.PNG"))
     # Place over the existing content
     self.spreadsheet_overlay.grid(row = 0, column = 0, columnspan = 2, sticky = "NSEW")
   
   def delete_spreadsheet_image(self):
     self.spreadsheet_overlay.destroy()
+    self.spreadsheet_overlay = None
     self.game_state = 0
-    
+  
+  def save_game(self, event):
+    self.game_state = 1
+    self.pause()
+
+    save_file_path = filedialog.asksaveasfilename(initialdir="./", initialfile="this_save.txt")
+    file = open(save_file_path, 'wb')
+    pickle.dump(self, file)
+
+
 
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
@@ -1597,27 +1613,27 @@ class Application:
       "x": 1600,
       "y": 900
     }
+    global main_window
     self.state = "game" # Game states: menu, game
     # Initialize the main window
     self.configure_main_window()
     self.parse_config()
     self.on_app_state_change()
-    self.main_window.mainloop()
+    main_window.mainloop()
 
   def configure_main_window(self):
     # Initializes the main_window
-    self.main_window = tk.Tk()
-    self.main_window.title("SpaceShootaz")
-    self.main_window.update_idletasks()
+    global main_window
+    main_window = tk.Tk()
+    main_window.title("SpaceShootaz")
+    main_window.update_idletasks()
     # Get position for placing top left corner of the window
-    x = int((self.main_window.winfo_screenwidth() - self.main_window_dimensions.get("x")) / 2)
+    x = int((main_window.winfo_screenwidth() - self.main_window_dimensions.get("x")) / 2)
     # - 30 is to account for the vertical navbar most OS have
-    y = int((self.main_window.winfo_screenheight() - self.main_window_dimensions.get("y")) / 2) - 30
-    self.main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}+{x}+{y}")
-    self.main_window.configure(bg='white')
-    self.main_window.resizable(False, False)
-    
-    
+    y = int((main_window.winfo_screenheight() - self.main_window_dimensions.get("y")) / 2) - 30
+    main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}+{x}+{y}")
+    main_window.configure(bg='white')
+    main_window.resizable(False, False)
     
 
   def create_new_config(self):
@@ -1667,18 +1683,19 @@ class Application:
   
   def on_app_state_change(self):
     # Destroy children widgets to reset the window on state change
-    list = self.main_window.grid_slaves()
+    list = main_window.grid_slaves()
     for l in list:
       l.destroy()
     
     if self.state == "game":
-      game = Game(self.main_window, self.main_window_dimensions, self.config)
+      game = Game(self.main_window_dimensions, self.config)
+      main_window.columnconfigure(0, weight=1)
+      main_window.columnconfigure(1, weight=1)
     pass
   
 
 def main():
-  # from tkinter import filedialog
-  # tmp = filedialog.asksaveasfilename(initialdir="./", initialfile="this_save.txt")
+  
   global utils
   utils = Utilities()
   app = Application()
