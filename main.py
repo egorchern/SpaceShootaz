@@ -622,9 +622,9 @@ class Ship:
 
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
-  def __init__(self, main_window_dimensions: dict, config: dict):
+  def __init__(self, main_window_dimensions: dict, config: dict, save_file_path: str = None):
     
-    
+    self.save_file_path = save_file_path
     main_window.columnconfigure(0, weight=1)
     main_window.columnconfigure(1, weight=1)
     self.config = config
@@ -635,7 +635,6 @@ class Game:
       "x": self.main_window_dimensions.get("x") - 440,
       "y" : self.main_window_dimensions.get("y") - 20
     }
-    self.right_menu = {}
     global canvas
     canvas = tk.Canvas(
       master=main_window,
@@ -678,12 +677,27 @@ class Game:
     self.instantiate_player()
     # Spawn enemy ship straight away, otherwise it is too boring at the start
     self.spawn_enemy_ship()
+    # Doesn't work if in a function
+    # Load the saved game via pickle
+    if save_file_path != None:
+      file = open(self.save_file_path, 'rb')
+      self: Game = pickle.load(file)
+      file.close()
+
     self.create_right_menu()
     # Bind events
     canvas.bind("<Motion>", self.on_cursor_move)
     main_window.bind("<Key>", self.on_key_press)
     canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
+
+    if save_file_path != None:
+      self.on_frame()
+      self.pause()
+      canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+      print("fa")
+
+      
 
   def create_right_menu(self):
     self.right_menu = {
@@ -1160,8 +1174,7 @@ class Game:
       # If not paused, pause
       else:
         self.pause()
-        # display paused text
-        canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+        
     elif self.controls.get("boss_key") == key:
       # If not in the boss key, pause and display spreadsheet
       if self.game_state != 3:
@@ -1190,6 +1203,9 @@ class Game:
     # Cancel canvas after and assign after id = 0
     canvas.after_cancel(self.next_frame_after_id)
     self.next_frame_after_id = 0
+    # If paused while game not ended or not upgrading, show paused text
+    if self.game_state == 0:
+      canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def gameover(self):
     # Function that handles what happens after players health is 0
@@ -1594,12 +1610,17 @@ class Game:
     self.game_state = 0
   
   def save_game(self, event):
-    self.game_state = 1
     self.pause()
-
-    save_file_path = filedialog.asksaveasfilename(initialdir="./", initialfile="this_save.txt")
+    canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+    self.right_menu = None
+    save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
     file = open(save_file_path, 'wb')
     pickle.dump(self, file)
+    file.close()
+    self.create_right_menu()
+    
+    
+
 
 
 
@@ -1691,7 +1712,7 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      game = Game(self.main_window_dimensions, self.config)
+      game = Game(self.main_window_dimensions, self.config, "saves/this_save2.txt")
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
     pass
