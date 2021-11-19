@@ -1775,6 +1775,8 @@ class Application:
     temp = self.config["game"]["leaderboard_file_path"]
     if not pathlib.Path(temp).exists():
       file = open(self.config["game"]["leaderboard_file_path"], "w")
+      standard_leaderboard = "1) Jess: 1482.5\n2) Crab: 391.5\n3) Michael: 124"
+      file.write(standard_leaderboard)
       file.close()
 
   def create_new_config(self):
@@ -1848,4 +1850,4 @@ def main():
 if __name__ == "__main__":
   cProfile.run("main()")
 
-#TODO: leaderboard, cheats, menu
+#TODO: cheats, menu
