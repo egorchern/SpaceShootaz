@@ -250,7 +250,6 @@ class Bomb:
   # Generic class for bomb
   def __init__(
     self,
-    canvas: tk.Canvas,
     focal_point: list,
     blast_delay_in_seconds: float,
     blast_radius: float,
@@ -297,7 +296,7 @@ class Bomb:
 
   def draw(self):
     # Optimization to only instantiate new image if the stage is different
-    if self.is_different_stage and self.bomb_stage < self.len_image_paths:
+    if self.is_different_stage and self.bomb_stage < self.len_image_paths or self.bomb_image == None:
       self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
 
     if self.bomb_stage < self.len_image_paths:
@@ -693,12 +692,9 @@ class Game:
 
     if save_file_path != None:
       self.on_frame()
-      self.pause()
-      canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
-      print("fa")
-
-      
-
+    
+    self.pause()
+  
   def create_right_menu(self):
     self.right_menu = {
 
@@ -1048,7 +1044,6 @@ class Game:
     if len(self.enemy_bomb_list) < self.max_bombs_on_screen:
       spawn_point = [self.player.focal_point[0] + difference(), self.player.focal_point[1] + difference()]
       bomb = Bomb(
-        canvas, 
         spawn_point.copy(),
         self.bomb_blast_delay,
         self.bomb_blast_radius,
@@ -1210,8 +1205,9 @@ class Game:
   def gameover(self):
     # Function that handles what happens after players health is 0
     if self.game_state == 0:
-      self.pause()
       self.game_state = 1
+      self.pause()
+      
       # Fix bug where game stops without fully displaying a frame 
       self.player.draw()
       for enemy_ship in self.enemy_ships_list:
@@ -1612,11 +1608,24 @@ class Game:
   def save_game(self, event):
     self.pause()
     canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+    # Need to delete all attributes that are tkinter elements
+    # Save all bomb images and then delete them 
+    bomb_image_list = []
+    for bomb in self.enemy_bomb_list: 
+      bomb_image_list.append(bomb.bomb_image)
+      bomb.bomb_image = None
+    # Delete right menu, because it uses tkinter elements
     self.right_menu = None
+    # Ask the user for filepath of the save
     save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
     file = open(save_file_path, 'wb')
+    # Use pickle to save the Game class
     pickle.dump(self, file)
     file.close()
+    # Restore bomb images
+    for i in range(len(bomb_image_list)):
+      self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
+    # Restore right menu
     self.create_right_menu()
     
     
@@ -1712,7 +1721,7 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      game = Game(self.main_window_dimensions, self.config, "saves/this_save2.txt")
+      game = Game(self.main_window_dimensions, self.config, "saves/this_save.txt")
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
     pass
