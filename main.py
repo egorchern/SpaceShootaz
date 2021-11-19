@@ -652,6 +652,7 @@ class Game:
     self.main_window_dimensions = main_window_dimensions
     self.controls = self.config.get("controls")
     self.game_config = self.config.get("game")
+    self.spreadsheet_overlay = None
     self.canvas_dimensions = {
       "x": self.main_window_dimensions.get("x") - 440,
       "y" : self.main_window_dimensions.get("y") - 20
@@ -679,7 +680,7 @@ class Game:
     self.enemy_ships_list: list[Ship] = []
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
-    # 0 - in progress, 1 - ended, 2 - upgrading, 3 - boss keyed
+    # 0 - in progress, 1 - ended, 2 - upgrading,
     self.game_state = 0
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
@@ -1207,13 +1208,14 @@ class Game:
         
     elif self.controls.get("boss_key") == key:
       # If not in the boss key, pause and display spreadsheet
-      if self.game_state != 3:
+      if self.spreadsheet_overlay == None:
         self.display_spreadsheet_image()
-        self.pause()
+        if self.next_frame_after_id != 0:
+          self.pause()
       # If in boss key, return to normal game operation
       else:
         self.delete_spreadsheet_image()
-        self.resume()
+        #self.resume()
 
     # If key is a number and the game is in upgrading state
     elif key in [str(number) for number in range(1, self.player_upgrade_choices + 1)] and self.game_state == 2:
@@ -1635,8 +1637,6 @@ class Game:
   
   def display_spreadsheet_image(self):
     # Function to display spreadsheet image on top of everything
-    # Set state to boss-keyed
-    self.game_state = 3
     # Needs to be self. so that can be removed in the remove function
     self.spreadsheet = tk.PhotoImage(file="images/spreadsheet.PNG")
     self.spreadsheet_overlay = tk.Label(image=self.spreadsheet)
@@ -1646,7 +1646,6 @@ class Game:
   def delete_spreadsheet_image(self):
     self.spreadsheet_overlay.destroy()
     self.spreadsheet_overlay = None
-    self.game_state = 0
   
   def save_game(self, event):
     self.pause()
