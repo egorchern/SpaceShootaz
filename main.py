@@ -1210,8 +1210,7 @@ class Game:
       # If not in the boss key, pause and display spreadsheet
       if self.spreadsheet_overlay == None:
         self.display_spreadsheet_image()
-        if self.next_frame_after_id != 0:
-          self.pause()
+        self.pause()
       # If in boss key, return to normal game operation
       else:
         self.delete_spreadsheet_image()
@@ -1232,9 +1231,10 @@ class Game:
     self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
 
   def pause(self):
-    # Cancel canvas after and assign after id = 0
-    canvas.after_cancel(self.next_frame_after_id)
-    self.next_frame_after_id = 0
+    if self.next_frame_after_id != 0:
+      # Cancel canvas after and assign after id = 0
+      canvas.after_cancel(self.next_frame_after_id)
+      self.next_frame_after_id = 0
     # If paused while game not ended or not upgrading, show paused text
     if self.game_state == 0:
       canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
@@ -1772,7 +1772,7 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      #self.modify_config("save_file_path", "saves/this_save.txt")
+      self.modify_config("save_file_path", "saves/this_save.txt")
       game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
