@@ -1208,8 +1208,8 @@ class Game:
     elif self.controls.get("boss_key") == key:
       # If not in the boss key, pause and display spreadsheet
       if self.game_state != 3:
-        self.pause()
         self.display_spreadsheet_image()
+        self.pause()
       # If in boss key, return to normal game operation
       else:
         self.delete_spreadsheet_image()
@@ -1255,7 +1255,6 @@ class Game:
       self.pause()
       self.draw_everything()
       
-
   def handle_enemy_bullets_collisions(self, enemy_ship_index: int):
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
     delete_indexes = []
@@ -1639,7 +1638,8 @@ class Game:
     # Set state to boss-keyed
     self.game_state = 3
     # Needs to be self. so that can be removed in the remove function
-    self.spreadsheet_overlay = tk.Label(image=tk.PhotoImage(file="images/spreadsheet.PNG"))
+    self.spreadsheet = tk.PhotoImage(file="images/spreadsheet.PNG")
+    self.spreadsheet_overlay = tk.Label(image=self.spreadsheet)
     # Place over the existing content
     self.spreadsheet_overlay.grid(row = 0, column = 0, columnspan = 2, sticky = "NSEW")
   
@@ -1659,6 +1659,7 @@ class Game:
       bomb.bomb_image = None
     # Delete right menu, because it uses tkinter elements
     self.right_menu = None
+    self.spreadsheet = None
     # Ask the user for filepath of the save
     save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
     file = open(save_file_path, 'wb')
@@ -1713,12 +1714,18 @@ class Application:
     main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}+{x}+{y}")
     main_window.configure(bg='white')
     main_window.resizable(False, False)
-    
+  
+  def create_leaderboard(self):
+    #Create leaderboard file if doesnt exist
+    file = open(self.config["game"]["leaderboard_file_path"], "w")
+    file.close()
+
   def create_new_config(self):
     # Creates a new config.ini file with standard settings below
     parser = configparser.ConfigParser()
     parser.add_section("IDENTITY")
     parser.set("IDENTITY", "Name", "Bob the Builder")
+    parser.set("IDENTITY", "Leaderboard_file_path", "leaderboard.txt")
     parser.add_section("GAME")
     parser.set("GAME", "Display_Hitboxes", "False")
     parser.set("GAME", "Display_Hitbars", "True")
@@ -1746,7 +1753,7 @@ class Application:
       for sect in parser.sections():
         for k, v in parser.items(sect):
           if sect == "IDENTITY":
-            self.config["identity"] = v
+            game_config[k] = v
           elif sect == "GAME":
             game_config[k] = v
           elif sect == "CONTROLS":
@@ -1757,6 +1764,7 @@ class Application:
 
       self.config["controls"] = controls
       self.config["game"] = game_config
+      self.create_leaderboard()
   
   def on_app_state_change(self):
     # Destroy children widgets to reset the window on state change
@@ -1765,7 +1773,7 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      self.modify_config("save_file_path", "saves/this_save.txt")
+      #self.modify_config("save_file_path", "saves/this_save.txt")
       game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
