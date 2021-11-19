@@ -9,6 +9,7 @@ import random
 import pickle
 import cProfile
 from tkinter import filedialog
+import threading
 
 utils = 0
 bullet_volley_offset = 6
@@ -621,12 +622,11 @@ class Ship:
 
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
-  def __init__(self, main_window_dimensions: dict, config: dict, save_file_path: str = None):
-    
-    self.save_file_path = save_file_path
+  def __init__(self, main_window_dimensions: dict, config: dict):
     main_window.columnconfigure(0, weight=1)
     main_window.columnconfigure(1, weight=1)
     self.config = config
+    self.save_file_path = self.config["save_file_path"]
     self.main_window_dimensions = main_window_dimensions
     self.controls = self.config.get("controls")
     self.game_config = self.config.get("game")
@@ -677,8 +677,8 @@ class Game:
     # Spawn enemy ship straight away, otherwise it is too boring at the start
     self.spawn_enemy_ship()
     # Doesn't work if in a function
-    # Load the saved game via pickle
-    if save_file_path != None:
+    # If there is a save_file in parameters then Load the saved game via pickle
+    if self.save_file_path != "":
       file = open(self.save_file_path, 'rb')
       self: Game = pickle.load(file)
       file.close()
@@ -690,10 +690,6 @@ class Game:
     canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
 
-    if save_file_path != None:
-      self.on_frame()
-    
-    self.pause()
   
   def create_right_menu(self):
     self.right_menu = {
@@ -1132,11 +1128,14 @@ class Game:
       self.frame_counter = 1
       self.seconds_elapsed += 1
       self.handle_timed_events()
-    
+    # The only way I managed to pause game after starting
+    if self.next_frame_after_id == "after#1":
+      self.pause()
     # Fix desync issues, where depending on timing, pause would be ignored
-    if self.next_frame_after_id != 0:
+    elif self.next_frame_after_id != 0:
       self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
-    pass
+    
+    
   
   def point_enemy_ships_to_player(self):
     # Points all enemy ship towards player
@@ -1647,12 +1646,19 @@ class Application:
       "y": 900
     }
     global main_window
+    # Initially no save file path is selected, so game will start new
+    self.config = {
+      "save_file_path": ""
+    }
     self.state = "game" # Game states: menu, game
     # Initialize the main window
     self.configure_main_window()
     self.parse_config()
     self.on_app_state_change()
     main_window.mainloop()
+
+  def modify_config(self, key, value):
+    self.config[key] = value
 
   def configure_main_window(self):
     # Initializes the main_window
@@ -1668,7 +1674,6 @@ class Application:
     main_window.configure(bg='white')
     main_window.resizable(False, False)
     
-
   def create_new_config(self):
     # Creates a new config.ini file with standard settings below
     parser = configparser.ConfigParser()
@@ -1695,7 +1700,6 @@ class Application:
     else:
       parser = configparser.ConfigParser()
       parser.read("config.ini")
-      self.config = {}
       controls = {}
       game_config = {}
       # Parse config by sections
@@ -1721,7 +1725,8 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      game = Game(self.main_window_dimensions, self.config, "saves/this_save.txt")
+      #self.modify_config("save_file_path", "saves/this_save.txt")
+      game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
     pass
