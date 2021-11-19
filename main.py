@@ -689,7 +689,9 @@ class Game:
     main_window.bind("<Key>", self.on_key_press)
     canvas.bind("<Button-1>", self.on_click)
     self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
-
+    # Draw everything and pause
+    self.draw_everything()
+    self.pause()
   
   def create_right_menu(self):
     self.right_menu = {
@@ -1128,14 +1130,12 @@ class Game:
       self.frame_counter = 1
       self.seconds_elapsed += 1
       self.handle_timed_events()
-    # The only way I managed to pause game after starting
-    if self.next_frame_after_id == "after#1":
-      self.pause()
+    # # The only way I managed to pause game after starting
+    # if self.next_frame_after_id == "after#1":
+    #   self.pause()
     # Fix desync issues, where depending on timing, pause would be ignored
-    elif self.next_frame_after_id != 0:
+    if self.next_frame_after_id != 0:
       self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
-    
-    
   
   def point_enemy_ships_to_player(self):
     # Points all enemy ship towards player
@@ -1201,16 +1201,24 @@ class Game:
     if self.game_state == 0:
       canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
+  def draw_everything(self):
+    # draw enemy ships
+    for enemy_ship in self.enemy_ships_list:
+      enemy_ship.draw()
+    # draw bomb
+    for bomb in self.enemy_bomb_list:
+      bomb.draw()
+    # Draw player on top of everything else
+    # draw player
+    self.player.draw()
+
   def gameover(self):
     # Function that handles what happens after players health is 0
     if self.game_state == 0:
       self.game_state = 1
       self.pause()
+      self.draw_everything()
       
-      # Fix bug where game stops without fully displaying a frame 
-      self.player.draw()
-      for enemy_ship in self.enemy_ships_list:
-        enemy_ship.draw()
 
   def handle_enemy_bullets_collisions(self, enemy_ship_index: int):
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
@@ -1627,10 +1635,6 @@ class Game:
     # Restore right menu
     self.create_right_menu()
     
-    
-
-
-
 
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
@@ -1725,7 +1729,7 @@ class Application:
       l.destroy()
     
     if self.state == "game":
-      #self.modify_config("save_file_path", "saves/this_save.txt")
+      self.modify_config("save_file_path", "saves/this_save.txt")
       game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
@@ -1743,4 +1747,4 @@ def main():
 if __name__ == "__main__":
   cProfile.run("main()")
 
-#TODO: save game, leaderboard, cheats, menu
+#TODO: leaderboard, cheats, menu
