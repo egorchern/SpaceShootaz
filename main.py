@@ -6,9 +6,11 @@ import math
 import configparser
 import pathlib
 import random
+import re
 import pickle
 import cProfile
 from tkinter import filedialog
+from tkinter import messagebox
 import threading
 
 utils = 0
@@ -266,7 +268,27 @@ class Utilities:
       i += 1
     return output
 
-    
+  def get_leaderboard_data(self, file_path: str):
+    def extract_info(string: str):
+      info = []
+      temp = re.search("\d+\) (?P<name>[^:]+):(?P<score>.*)", string)
+      score = float(temp.group("score"))
+      name = temp.group("name")
+      info.append(name)
+      info.append(score)
+      return info
+    output = []
+    file = open(file_path, "r+")
+    lines = file.readlines()
+    for line in lines:
+      info = extract_info(line)
+      output.append(info)
+    return output
+  
+  def display_leaderboard(self, file_path: str):
+    file = open(file_path, "r")
+    to_write = file.read()
+    tk.messagebox.showinfo("Leaderboard", to_write)
 
 class Bomb:
   # Generic class for bomb
@@ -645,10 +667,13 @@ class Ship:
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
   def __init__(self, main_window_dimensions: dict, config: dict):
+    
     main_window.columnconfigure(0, weight=1)
     main_window.columnconfigure(1, weight=1)
     self.config = config
     self.save_file_path = self.config["save_file_path"]
+    self.leaderboard_file_path = self.config["game"]["leaderboard_file_path"]
+    self.identity = self.config["game"]["name"]
     self.main_window_dimensions = main_window_dimensions
     self.controls = self.config.get("controls")
     self.game_config = self.config.get("game")
@@ -695,7 +720,6 @@ class Game:
     self.define_enemy_scaling_variables()
     self.define_bomb_scaling_variables()
     self.define_score_variables()
-    
     self.instantiate_player()
     # Spawn enemy ship straight away, otherwise it is too boring at the start
     self.spawn_enemy_ship()
@@ -1253,9 +1277,14 @@ class Game:
   def gameover(self):
     # Function that handles what happens after players health is 0
     if self.game_state == 0:
+      # Change state to game ended
       self.game_state = 1
       self.pause()
+      # This allows the frames to settle, so no missing staff
       self.draw_everything()
+      canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Game Over!")
+      self.record_in_leaderboard()
+      utils.display_leaderboard(self.leaderboard_file_path)
       
   def handle_enemy_bullets_collisions(self, enemy_ship_index: int):
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
@@ -1670,7 +1699,34 @@ class Game:
       self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
     # Restore right menu
     self.create_right_menu()
-    
+  
+  def record_in_leaderboard(self):
+    # Record the game in the leaderboard
+    leaderboard_data = utils.get_leaderboard_data(self.leaderboard_file_path)
+    # Check if the current name is already in leaderboard
+    present = False
+    index = -1
+    for i, d in enumerate(leaderboard_data):
+      if d[0] == self.identity:
+        present = True
+        index = i
+    # If not in leaderboard, append it
+    if not present:
+      current_player_data = [self.identity, self.score]
+      leaderboard_data.append(current_player_data)
+    # If in leaderboard, modify the score if the current score is higher than the recorded score
+    else:
+      leaderboard_data[index][1] = max(self.score, leaderboard_data[index][1])
+    # Sort by score
+    leaderboard_data.sort(key=lambda d: d[1], reverse=True)
+    # Get the formatted string to write in the file
+    to_write = ""
+    for i, d in enumerate(leaderboard_data):
+     to_write += f"{i + 1}) {d[0]}: {d[1]}\n"
+    file = open(self.leaderboard_file_path, 'w+')
+    file.write(to_write)
+    file.close()
+
 
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
@@ -1716,8 +1772,10 @@ class Application:
   
   def create_leaderboard(self):
     #Create leaderboard file if doesnt exist
-    file = open(self.config["game"]["leaderboard_file_path"], "w")
-    file.close()
+    temp = self.config["game"]["leaderboard_file_path"]
+    if not pathlib.Path(temp).exists():
+      file = open(self.config["game"]["leaderboard_file_path"], "w")
+      file.close()
 
   def create_new_config(self):
     # Creates a new config.ini file with standard settings below
@@ -1767,12 +1825,12 @@ class Application:
   
   def on_app_state_change(self):
     # Destroy children widgets to reset the window on state change
-    list = main_window.grid_slaves()
-    for l in list:
+    lst = main_window.grid_slaves()
+    for l in lst:
       l.destroy()
     
     if self.state == "game":
-      self.modify_config("save_file_path", "saves/this_save.txt")
+      #self.modify_config("save_file_path", "saves/this_save.txt")
       game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
