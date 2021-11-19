@@ -15,6 +15,7 @@ utils = 0
 bullet_volley_offset = 6
 main_window = None
 Canvas = None
+thread_count = 2
 # Points have last two elements as metadata, so thats why it is len(points) - 2
 # On frame is a function that triggers every frame
 class Utilities:
@@ -313,7 +314,7 @@ class Bomb:
       else:
         self.is_different_stage = False
 
-      self.draw()
+      #self.draw()
 
   def draw(self):
     # Optimization to only instantiate new image if the stage is different
@@ -637,7 +638,7 @@ class Ship:
   def on_frame(self):
     self.calc_bounds_info()
     self.handle_bullets()
-    self.draw()
+    #self.draw()
     
 
 class Game:
@@ -1105,14 +1106,11 @@ class Game:
     # Iterate through all enemy ships all handle events with them
     for i in range(len(self.enemy_ships_list)):
       enemy_ship = self.enemy_ships_list[i]
+      # Attempt to shoot valley every frame, whether is allowed to shoot will be handled in the inner method
       enemy_ship.shoot_volley(self.frame_counter, self.seconds_elapsed)
       enemy_ship.on_frame()
-      stop_game = self.handle_enemy_bullets_collisions(i)
-      # If stop game is True, then players hp is less or equal to 0, so call gameover
-      if stop_game:
-        self.gameover()
-        break
-  
+      self.handle_enemy_bullets_collisions(i)
+      
   def handle_bombs(self):
     # Function to do everything on bombs
     delete_indexes = []
@@ -1144,33 +1142,50 @@ class Game:
     self.handle_player_bullets_collisions()
     self.handle_remnant_bullets()
     self.handle_player_enemy_ship_collision()
+    # Draw everything separately
+    self.draw_everything()
     # Increase ingame time variables
     self.frame_counter += 1
     if(self.frame_counter > self.fps):
       self.frame_counter = 1
       self.seconds_elapsed += 1
       self.handle_timed_events()
-    # # The only way I managed to pause game after starting
-    # if self.next_frame_after_id == "after#1":
-    #   self.pause()
+
     # Fix desync issues, where depending on timing, pause would be ignored
+    
     if self.next_frame_after_id != 0:
       self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
   
-  def point_enemy_ships_to_player(self):
-    # Points all enemy ship towards player
-    for enemy_ship in self.enemy_ships_list:
-      # Calculate angle from enemy ship to the player ship
+  def point_enemy_ships_in_list_to_player(self, index_list: list):
+    for index in index_list:
+      enemy_ship = self.enemy_ships_list[index]
       angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
       enemy_ship.transform(angle_to_player)
 
+  def point_enemy_ships_to_player(self):
+    threads = []
+    lists = utils.separate_list_into_index_parts(self.enemy_ships_list, thread_count)
+    for list in lists:
+      thread = threading.Thread(target=self.point_enemy_ships_in_list_to_player, args=[list])
+      threads.append(thread)
+      thread.start()
+    for thread in threads:
+      thread.join()
+    # # Points all enemy ship towards player
+    # for enemy_ship in self.enemy_ships_list:
+    #   # Calculate angle from enemy ship to the player ship
+    #   angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
+    #   enemy_ship.transform(angle_to_player)
+
   def on_cursor_move(self, event):
     # Adjusts angle variable depending on where user points the cursor
-    x = event.x
-    y = event.y
-    self.angle = utils.resolve_angle(self.player.focal_point[0], self.player.focal_point[1], x, y)
-    self.player.transform(self.angle)
-    self.point_enemy_ships_to_player()
+    # Fix bug where ships will be pointing when paused
+    if self.next_frame_after_id != 0:
+      x = event.x
+      y = event.y
+      self.angle = utils.resolve_angle(self.player.focal_point[0], self.player.focal_point[1], x, y)
+      self.player.transform(self.angle)
+      self.point_enemy_ships_to_player()
   
   def on_key_press(self, event):
     # Handles key presses
