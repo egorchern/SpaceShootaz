@@ -246,6 +246,26 @@ class Utilities:
     # If no hitboxes collide, then objects don't collide, return False
     return False
 
+  def separate_list_into_index_parts(self, lst: list, parts: int) -> list[list]:
+    output = []
+    part_count = len(lst) // parts
+    i = 0
+    for k in range(parts):
+      current_count = 0
+      current_list = []
+      while current_count < part_count:
+        current_list.append(i)
+        i += 1
+        current_count += 1
+      output.append(current_list)
+    counter = 0
+    while i < len(lst):
+      output[counter].append(i)
+      counter += 1
+      i += 1
+    return output
+
+    
 
 class Bomb:
   # Generic class for bomb
