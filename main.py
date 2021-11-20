@@ -1755,6 +1755,31 @@ class Application:
 
   def modify_config(self, key, value):
     self.config[key] = value
+  
+  def process_cheat_code(self, code: str):
+    # If cheat code is valid, then activates it in the config
+    # Cheatcodes:
+    # infi - Infinite player health
+    # aezkami - Infinite player damage
+    # quortli - player scaling increased by factor of 2
+    # junji - bombs deal no damage
+    # scrcheat - score gain is multiplied by 2
+    # uionjs - enemies scale slower by factor of 2
+    codes = {
+      "infi": "Infinite player health",
+      "aezkami": "Infinite player damage",
+      "quortli": "Player scaling increased by factor of 2",
+      "junji": "Bombs deal no damage",
+      "scrcheat": "Score gain is multiplied by 2",
+      "uionjs" : "Enemies scale 2 times slower"
+    }
+    # Check if the code entered is a valid cheatcode
+    temp = codes.get(code)
+    if temp != None:
+      self.config["game"]["cheat_list"].append(code)
+      print(f"{code} cheatcode applied: {temp}")
+    else:
+      print(f"{code} is not a valid cheat code")
 
   def configure_main_window(self):
     # Initializes the main_window
