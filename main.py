@@ -6,9 +6,11 @@ import math
 import configparser
 import pathlib
 import random
+import re
 import pickle
 import cProfile
 from tkinter import filedialog
+from tkinter import messagebox
 import threading
 
 utils = 0
@@ -266,7 +268,27 @@ class Utilities:
       i += 1
     return output
 
-    
+  def get_leaderboard_data(self, file_path: str):
+    def extract_info(string: str):
+      info = []
+      temp = re.search("\d+\) (?P<name>[^:]+):(?P<score>.*)", string)
+      score = float(temp.group("score"))
+      name = temp.group("name")
+      info.append(name)
+      info.append(score)
+      return info
+    output = []
+    file = open(file_path, "r+")
+    lines = file.readlines()
+    for line in lines:
+      info = extract_info(line)
+      output.append(info)
+    return output
+  
+  def display_leaderboard(self, file_path: str):
+    file = open(file_path, "r")
+    to_write = file.read()
+    tk.messagebox.showinfo("Leaderboard", to_write)
 
 class Bomb:
   # Generic class for bomb
@@ -645,13 +667,17 @@ class Ship:
 class Game:
   # Class for the game, includes frame trigger, pause/resume functions and etc.
   def __init__(self, main_window_dimensions: dict, config: dict):
+    
     main_window.columnconfigure(0, weight=1)
     main_window.columnconfigure(1, weight=1)
     self.config = config
     self.save_file_path = self.config["save_file_path"]
+    self.leaderboard_file_path = self.config["game"]["leaderboard_file_path"]
+    self.identity = self.config["game"]["name"]
     self.main_window_dimensions = main_window_dimensions
     self.controls = self.config.get("controls")
     self.game_config = self.config.get("game")
+    self.spreadsheet_overlay = None
     self.canvas_dimensions = {
       "x": self.main_window_dimensions.get("x") - 440,
       "y" : self.main_window_dimensions.get("y") - 20
@@ -679,7 +705,7 @@ class Game:
     self.enemy_ships_list: list[Ship] = []
     self.display_hitboxes = self.game_config.get("display_hitboxes") == "True"
     self.display_hitbars = self.game_config.get("display_hitbars") == "True"
-    # 0 - in progress, 1 - ended, 2 - upgrading, 3 - boss keyed
+    # 0 - in progress, 1 - ended, 2 - upgrading,
     self.game_state = 0
     # Used for determining state of game (paused or not) and for pausing the canvas after
     self.next_frame_after_id = 0
@@ -694,7 +720,6 @@ class Game:
     self.define_enemy_scaling_variables()
     self.define_bomb_scaling_variables()
     self.define_score_variables()
-    
     self.instantiate_player()
     # Spawn enemy ship straight away, otherwise it is too boring at the start
     self.spawn_enemy_ship()
@@ -1207,13 +1232,13 @@ class Game:
         
     elif self.controls.get("boss_key") == key:
       # If not in the boss key, pause and display spreadsheet
-      if self.game_state != 3:
-        self.pause()
+      if self.spreadsheet_overlay == None:
         self.display_spreadsheet_image()
+        self.pause()
       # If in boss key, return to normal game operation
       else:
         self.delete_spreadsheet_image()
-        self.resume()
+        #self.resume()
 
     # If key is a number and the game is in upgrading state
     elif key in [str(number) for number in range(1, self.player_upgrade_choices + 1)] and self.game_state == 2:
@@ -1230,9 +1255,10 @@ class Game:
     self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
 
   def pause(self):
-    # Cancel canvas after and assign after id = 0
-    canvas.after_cancel(self.next_frame_after_id)
-    self.next_frame_after_id = 0
+    if self.next_frame_after_id != 0:
+      # Cancel canvas after and assign after id = 0
+      canvas.after_cancel(self.next_frame_after_id)
+      self.next_frame_after_id = 0
     # If paused while game not ended or not upgrading, show paused text
     if self.game_state == 0:
       canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
@@ -1251,11 +1277,15 @@ class Game:
   def gameover(self):
     # Function that handles what happens after players health is 0
     if self.game_state == 0:
+      # Change state to game ended
       self.game_state = 1
       self.pause()
+      # This allows the frames to settle, so no missing staff
       self.draw_everything()
+      canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Game Over!")
+      self.record_in_leaderboard()
+      utils.display_leaderboard(self.leaderboard_file_path)
       
-
   def handle_enemy_bullets_collisions(self, enemy_ship_index: int):
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
     delete_indexes = []
@@ -1636,17 +1666,15 @@ class Game:
   
   def display_spreadsheet_image(self):
     # Function to display spreadsheet image on top of everything
-    # Set state to boss-keyed
-    self.game_state = 3
     # Needs to be self. so that can be removed in the remove function
-    self.spreadsheet_overlay = tk.Label(image=tk.PhotoImage(file="images/spreadsheet.PNG"))
+    self.spreadsheet = tk.PhotoImage(file="images/spreadsheet.PNG")
+    self.spreadsheet_overlay = tk.Label(image=self.spreadsheet)
     # Place over the existing content
     self.spreadsheet_overlay.grid(row = 0, column = 0, columnspan = 2, sticky = "NSEW")
   
   def delete_spreadsheet_image(self):
     self.spreadsheet_overlay.destroy()
     self.spreadsheet_overlay = None
-    self.game_state = 0
   
   def save_game(self, event):
     self.pause()
@@ -1659,6 +1687,7 @@ class Game:
       bomb.bomb_image = None
     # Delete right menu, because it uses tkinter elements
     self.right_menu = None
+    self.spreadsheet = None
     # Ask the user for filepath of the save
     save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
     file = open(save_file_path, 'wb')
@@ -1670,7 +1699,34 @@ class Game:
       self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
     # Restore right menu
     self.create_right_menu()
-    
+  
+  def record_in_leaderboard(self):
+    # Record the game in the leaderboard
+    leaderboard_data = utils.get_leaderboard_data(self.leaderboard_file_path)
+    # Check if the current name is already in leaderboard
+    present = False
+    index = -1
+    for i, d in enumerate(leaderboard_data):
+      if d[0] == self.identity:
+        present = True
+        index = i
+    # If not in leaderboard, append it
+    if not present:
+      current_player_data = [self.identity, self.score]
+      leaderboard_data.append(current_player_data)
+    # If in leaderboard, modify the score if the current score is higher than the recorded score
+    else:
+      leaderboard_data[index][1] = max(self.score, leaderboard_data[index][1])
+    # Sort by score
+    leaderboard_data.sort(key=lambda d: d[1], reverse=True)
+    # Get the formatted string to write in the file
+    to_write = ""
+    for i, d in enumerate(leaderboard_data):
+     to_write += f"{i + 1}) {d[0]}: {d[1]}\n"
+    file = open(self.leaderboard_file_path, 'w+')
+    file.write(to_write)
+    file.close()
+
 
 class Menu:
   # Class for the menu, includes load, cheat code enter and key remapping
@@ -1713,12 +1769,22 @@ class Application:
     main_window.geometry(f"{self.main_window_dimensions.get('x')}x{self.main_window_dimensions.get('y')}+{x}+{y}")
     main_window.configure(bg='white')
     main_window.resizable(False, False)
-    
+  
+  def create_leaderboard(self):
+    #Create leaderboard file if doesnt exist
+    temp = self.config["game"]["leaderboard_file_path"]
+    if not pathlib.Path(temp).exists():
+      file = open(self.config["game"]["leaderboard_file_path"], "w")
+      standard_leaderboard = "1) Jess: 1482.5\n2) Crab: 391.5\n3) Michael: 124"
+      file.write(standard_leaderboard)
+      file.close()
+
   def create_new_config(self):
     # Creates a new config.ini file with standard settings below
     parser = configparser.ConfigParser()
     parser.add_section("IDENTITY")
     parser.set("IDENTITY", "Name", "Bob the Builder")
+    parser.set("IDENTITY", "Leaderboard_file_path", "leaderboard.txt")
     parser.add_section("GAME")
     parser.set("GAME", "Display_Hitboxes", "False")
     parser.set("GAME", "Display_Hitbars", "True")
@@ -1746,7 +1812,7 @@ class Application:
       for sect in parser.sections():
         for k, v in parser.items(sect):
           if sect == "IDENTITY":
-            self.config["identity"] = v
+            game_config[k] = v
           elif sect == "GAME":
             game_config[k] = v
           elif sect == "CONTROLS":
@@ -1757,15 +1823,16 @@ class Application:
 
       self.config["controls"] = controls
       self.config["game"] = game_config
+      self.create_leaderboard()
   
   def on_app_state_change(self):
     # Destroy children widgets to reset the window on state change
-    list = main_window.grid_slaves()
-    for l in list:
+    lst = main_window.grid_slaves()
+    for l in lst:
       l.destroy()
     
     if self.state == "game":
-      self.modify_config("save_file_path", "saves/this_save.txt")
+      #self.modify_config("save_file_path", "saves/this_save.txt")
       game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
@@ -1783,4 +1850,4 @@ def main():
 if __name__ == "__main__":
   cProfile.run("main()")
 
-#TODO: leaderboard, cheats, menu
+#TODO: cheats, menu
