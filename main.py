@@ -1,6 +1,7 @@
-# Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester 16321 Python coursework
-# Window size: 1600 x 900
-# Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
+"""Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester 16321 Python coursework
+Window size: 1600 x 900
+Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
+"""
 import tkinter as tk
 import math
 import configparser
@@ -8,7 +9,6 @@ import pathlib
 import random
 import re
 import pickle
-import cProfile
 from tkinter import filedialog
 from tkinter import messagebox
 import threading
@@ -21,15 +21,16 @@ thread_count = 2
 # Points have last two elements as metadata, so thats why it is len(points) - 2
 # On frame is a function that triggers every frame
 class Utilities:
-  # Class for utility functions, such as resolve angle and resolve point
+  """Class for utility functions, such as resolve angle and resolve point"""
   def __init__(self):
     pass
 
   def radians_to_degrees(self, radians: float) -> float:
+    """Converts radians to degrees"""
     return radians * (180 / math.pi)
 
   def resolve_angle(self, x1: float, y1: float, x2: float, y2:float ) -> float:
-    # Calculates angle between (x1, y1) and (x2, y2) relative to positive y-axis
+    """Calculates angle between (x1, y1) and (x2, y2) relative to positive y-axis"""
     x_diff = x2 - x1
     y_diff = y2 - y1
     angle = 0
@@ -68,7 +69,7 @@ class Utilities:
     return angle
   
   def resolve_point(self, x1: float, y1: float, length: float, angle: float) -> list:
-    # Calculates (x2, y2) point translated using angle with given angle, length and a reference point.
+    """Calculates (x2, y2) point translated using angle with given angle, length and a reference point."""
     # Reduces angle to optimal range
     while(angle >= 2 * math.pi):
       angle -= 2 * math.pi
@@ -110,11 +111,11 @@ class Utilities:
     return [x1 + x_offset, y1 + y_offset]
 
   def calculate_length(self, x1: float, y1: float, x2: float, y2: float) -> float:
-    # calculates length between two points
+    """calculates length between two points"""
     return math.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
   
   def get_bounds_info(self, points: list) -> list:
-    # Returns information about object bounds
+    """Returns information about object bounds"""
     xs = [points[i] for i in range(0, len(points) - 2, 2)]
     # Get all X coordinates anc calc min and max
     min_x = min(xs)
@@ -126,7 +127,7 @@ class Utilities:
     return [min_x, max_x, min_y, max_y]
 
   def is_out_of_bounds(self, obj_min_x: float, obj_max_x: float, obj_min_y: float, obj_max_y: float, bounds_max_x: float, bounds_max_y: float) -> bool:
-    # Calculates if the object is out of bounds using the box model
+    """Calculates if the object is out of bounds using the box model"""
     if(obj_min_x < 0):
       # If left of object is out of bounds
       return True
@@ -144,7 +145,7 @@ class Utilities:
       return False
   
   def is_fully_out_of_bounds(self, obj_min_x: float, obj_max_x: float, obj_min_y: float, obj_max_y: float, bounds_max_x: float, bounds_max_y: float) -> bool:
-    # Similar to is_out_of_bounds but checks if object is completely out of viewable space
+    """Similar to is_out_of_bounds but checks if object is completely out of viewable space"""
     if obj_max_x < 0:
       # If out from left
       return True
@@ -161,7 +162,7 @@ class Utilities:
       return False
 
   def transform(self, focal_point: list, angle: float, points: list, hitboxes: list) -> list:
-    # Tilts points by given angle 
+    """Tilts points by given angle and returns the points array"""
     for i in range(0, len(points) - 2, 2):
       # Resolves the new point, when the current point is tilted at current angle
       temp = self.resolve_point(focal_point[0], focal_point[1], points[-2][i // 2], points[-1][i // 2] + angle)
@@ -179,7 +180,7 @@ class Utilities:
     return [points, hitboxes]
 
   def calculate_points_metadata(self, points: list, focal_point: list) -> list:
-    # Calculates reference angles for using them to offset tilt calculation
+    """Calculates reference angles for using them to offset tilt calculation"""
     lengths = []
     angles = []
     for i in range(0, len(points), 2):
@@ -194,7 +195,7 @@ class Utilities:
     return points
 
   def do_hitboxes_collide(self, hitbox1: list, hitbox2: list) -> bool:
-    # Calculate whether hitboxes collide using Separating Axis Theorem
+    """Calculate whether hitboxes collide using Separating Axis Theorem"""
     # Get all edge vectors
     #vectors = [[hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox1[4] - hitbox1[6], hitbox1[5] - hitbox1[7]], [hitbox1[6] - hitbox1[0], hitbox1[7] - hitbox1[1]], [hitbox1[0] - hitbox1[2], hitbox1[1] - hitbox1[3]], [hitbox1[2] - hitbox1[4], hitbox1[3] - hitbox1[5]], [hitbox2[4] - hitbox2[6], hitbox2[5] - hitbox2[7]], [hitbox2[6] - hitbox2[0], hitbox2[7] - hitbox2[1]]]
     
@@ -234,7 +235,7 @@ class Utilities:
     return True
 
   def do_objects_collide(self, obj1, obj2) -> bool:
-    # Generic object collision driver function, iterates through hitboxes of first object and compares with each hitbox in second object
+    """Generic object collision driver function, iterates through hitboxes of first object and compares with each hitbox in second object"""
     hitboxes1 = obj1.hitboxes
     hitboxes2 = obj2.hitboxes
     for i in range(len(hitboxes1)):
@@ -250,6 +251,7 @@ class Utilities:
     return False
 
   def separate_list_into_index_parts(self, lst: list, parts: int) -> list[list]:
+    """Separates a list into n lists, with excess elements going equally into first lists"""
     output = []
     part_count = len(lst) // parts
     i = 0
@@ -268,7 +270,8 @@ class Utilities:
       i += 1
     return output
 
-  def get_leaderboard_data(self, file_path: str):
+  def get_leaderboard_data(self, file_path: str) -> list:
+    """Gets leaderboard data from a file_path and returns a processed list"""
     def extract_info(string: str):
       info = []
       temp = re.search("\d+\) (?P<name>[^:]+):(?P<score>.*)", string)
@@ -285,13 +288,15 @@ class Utilities:
       output.append(info)
     return output
   
-  def display_leaderboard(self, file_path: str):
+  def display_leaderboard(self, file_path: str) -> None:
+    """Displays the leaderboard via tk messagebox"""
     file = open(file_path, "r")
     to_write = file.read()
     tk.messagebox.showinfo("Leaderboard", to_write)
 
+
 class Bomb:
-  # Generic class for bomb
+  """Generic class for bomb"""
   def __init__(
     self,
     focal_point: list,
@@ -321,12 +326,14 @@ class Bomb:
     self.bomb_image = None
 
   def is_redundant(self):
+    """Determines if a bomb is redundant"""
     if self.blast_counter > self.blast_delay + self.show_blast_frames:
       return True
     else:
       False
 
   def on_frame(self):
+    """On frame event for bomb"""
     self.blast_counter += 1
     if self.blast_counter <= self.blast_delay + self.show_blast_frames:
       stage_percentage = self.blast_counter / self.blast_delay
@@ -340,6 +347,7 @@ class Bomb:
       #self.draw()
 
   def draw(self):
+    """Draws the bomb on the canvas"""
     # Optimization to only instantiate new image if the stage is different
     if self.is_different_stage and self.bomb_stage < self.len_image_paths or self.bomb_image == None:
       self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
@@ -357,7 +365,7 @@ class Bomb:
 
 
 class Bullet:
-  # Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation
+  """Class for bullet, created by some ship, uses similar properties as ship, so refer to ship class for more documentation"""
   def __init__(self, canvas: tk.Canvas, canvas_dimensions: dict, width, height, focal_point, speed, damage, angle, fps, color, display_hitboxes):
     canvas_dimensions = canvas_dimensions
     self.width = width
@@ -397,27 +405,27 @@ class Bullet:
     self.transform(self.angle)
     
   def transform(self, angle: float):
-    # Driver code for transforming points using generic transform function
+    """Driver code for transforming points using generic transform function"""
     self.angle = angle
     temp = utils.transform(self.focal_point, self.angle, self.points, self.hitboxes)
     self.points = temp[0]
     self.hitboxes = temp[1]
   
   def calculate_hitboxes_metadata(self):
-    # Same as points metadata generation, but iterate throught every hitbox
+    """Same as points metadata generation, but iterate throught every hitbox"""
     for i in range(len(self.hitboxes)):
       hitbox = utils.calculate_points_metadata(self.hitboxes[i], self.focal_point)
       self.hitboxes[i] = hitbox
 
   def move(self):
-    # Moves in the current direction by incrementing focal point with speed and recalculating points
+    """Moves in the current direction by incrementing focal point with speed and recalculating points"""
     temp = utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
     self.focal_point[0] = temp[0]
     self.focal_point[1] = temp[1]
     self.transform(self.angle)
   
   def draw_hitboxes(self):
-    # Draws the box via lines
+    """Draws the box via lines"""
     for hitbox in self.hitboxes:
       canvas.create_line(hitbox[0], hitbox[1], hitbox[2], hitbox[3])
       canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
@@ -425,7 +433,7 @@ class Bullet:
       canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
 
   def draw(self):
-    # Draws the bullet
+    """Draws the bullet"""
     canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
     # If hitboxes display is on, display hitboxes of the ship
     if self.display_hitboxes:
@@ -433,7 +441,7 @@ class Bullet:
 
 
 class Ship:
-  # Generic ship class, with functions like tilt
+  """Generic ship class, with functions like tilt"""
   def __init__(
       self,
       canvas: tk.Canvas,
@@ -537,7 +545,7 @@ class Ship:
     self.transform(self.angle)
   
   def shoot_volley(self, frame_counter: int, seconds_elapsed: int):
-    # Shoots a volley of bullets_per_volley num of bullets
+    """Shoots a volley of bullets_per_volley num of bullets if is allowed to shoot"""
     # Check whether ship allowed to shoot
     temp = frame_counter + seconds_elapsed * self.fps
     if temp > self.last_shot_at + self.shoot_rate:
@@ -564,10 +572,11 @@ class Ship:
         offset_coef += 1
 
   def calc_bounds_info(self):
+    """Calculate bound info such as min_x and etc"""
     self.bounds_info = utils.get_bounds_info(self.points)
 
   def move(self):
-    # Moves in the current direction by incrementing focal point with speed and recalculating points
+    """Moves in the current direction by incrementing focal point with speed and recalculating points"""
     temp = utils.resolve_point(self.focal_point[0], self.focal_point[1], self.speed, self.angle)
     
     # Check if the move will resolve in ship being out of bounds
@@ -579,25 +588,25 @@ class Ship:
       self.transform(self.angle)
   
   def shoot_bullet(self, focal_point: list):
-    # Simply creates a new bullet at some focal_point and adds it to the bullet list
+    """Simply creates a new bullet at some focal_point and adds it to the bullet list"""
     bullet = Bullet(canvas, self.canvas_dimensions, self.bullet_width, self.bullet_height, focal_point, self.bullet_speed, self.bullet_damage, self.angle, self.fps, self.bullet_color, self.display_hitboxes)
     self.bullet_list.append(bullet)
     
   def calculate_hitboxes_metadata(self):
-    # Same as points metadata generation, but iterate throught every hitbox
+    """Same as points metadata generation, but iterate throught every hitbox"""
     for i in range(len(self.hitboxes)):
       hitbox = utils.calculate_points_metadata(self.hitboxes[i], self.focal_point)
       self.hitboxes[i] = hitbox
   
   def transform(self, angle: float):
-    # Driver code for transforming points using generic transform function
+    """Driver code for transforming points using generic transform function"""
     self.angle = angle
     temp = utils.transform(self.focal_point, self.angle, self.points, self.hitboxes)
     self.points = temp[0]
     self.hitboxes = temp[1]
 
   def draw_hitboxes(self):
-    # Draws the box via lines
+    """Draws the box via lines"""
     for hitbox in self.hitboxes:
       canvas.create_line(hitbox[0], hitbox[1], hitbox[2], hitbox[3])
       canvas.create_line(hitbox[2], hitbox[3], hitbox[4], hitbox[5])
@@ -605,6 +614,7 @@ class Ship:
       canvas.create_line(hitbox[6], hitbox[7], hitbox[0], hitbox[1])
 
   def draw_healthbar(self):
+    """Draws healthbar"""
     healthbar_height = 10
     healthbar_offset = 5
     health_present_color = "#44ff00"
@@ -619,7 +629,7 @@ class Ship:
       canvas.create_rectangle(self.bounds_info[1] - missing_health_percentage * (self.bounds_info[1] - self.bounds_info[0]), self.bounds_info[2] - healthbar_offset - healthbar_height, self.bounds_info[1], self.bounds_info[2] - healthbar_offset, fill=health_absent_color)
 
   def delete_redundant_bullets(self):
-    # Deletes entries from bullet list if the bullet is completely out of field
+    """Deletes entries from bullet list if the bullet is completely out of field"""
     delete_indexes = []
     for bullet_index in range(len(self.bullet_list)):
       bullet = self.bullet_list[bullet_index]
@@ -639,6 +649,7 @@ class Ship:
           delete_indexes[j] -= 1
 
   def handle_bullets(self):
+    """Handles all the bullets, such as moving the bullets and deleting redundant ones"""
     self.delete_redundant_bullets()
     # Move bullets 
     for i in range(len(self.bullet_list)):
@@ -646,7 +657,7 @@ class Ship:
       bullet.move()
 
   def draw(self):
-    # Draw ship
+    """Draw ship"""
     canvas.create_polygon(self.points[0:len(self.points) - 2], fill=self.color)
     # Driver code for drawing all bullets
     for i in range(len(self.bullet_list)):
@@ -659,13 +670,14 @@ class Ship:
       self.draw_healthbar()
   
   def on_frame(self):
+    """On frame for ship"""
     self.calc_bounds_info()
     self.handle_bullets()
     #self.draw()
     
 
 class Game:
-  # Class for the game, includes frame trigger, pause/resume functions and etc.
+  """ Class for the game, includes frame trigger, pause/resume functions and etc. """
   def __init__(self, main_window_dimensions: dict, config: dict):
     
     main_window.columnconfigure(0, weight=1)
@@ -729,7 +741,7 @@ class Game:
       file = open(self.save_file_path, 'rb')
       self: Game = pickle.load(file)
       file.close()
-
+    self.process_cheats()
     self.create_right_menu()
     # Bind events
     canvas.bind("<Motion>", self.on_cursor_move)
@@ -741,6 +753,7 @@ class Game:
     self.pause()
   
   def create_right_menu(self):
+    """Creates initial Tkinter elements of the right menu"""
     self.right_menu = {
 
     }
@@ -754,6 +767,10 @@ class Game:
     self.right_menu["save_button"].grid(row = 0, column = 1, columnspan=1, padx= 10, sticky="WE")
     self.right_menu["right_menu"].columnconfigure(0, weight=1)
     self.right_menu["right_menu"].columnconfigure(1, weight=1)
+    
+    # Define player name label
+    self.right_menu["player_name"] = tk.Label(master=self.right_menu["right_menu"], text=f"Name: {self.identity}", font=score_font, bg="white")
+    self.right_menu["player_name"].grid(row = 1, column = 0, columnspan=2, pady=10, sticky="EW")
     # Define score labels
     score_row = tk.Frame(self.right_menu["right_menu"], bg="white")
     self.right_menu["score_label"] = tk.Label(score_row, text=f"Score: {self.score}", font=score_font, pady=10, bg="white")
@@ -765,7 +782,7 @@ class Game:
     self.right_menu["score_per_enemy_label"] = tk.Label(score_row, text=f"Score/enemy: {self.score_per_enemy}", font=button_font, pady=5, padx=4, bg="white")
     self.right_menu["score_per_enemy_label"].grid(row = 1, column=1)
 
-    score_row.grid(row = 1, column=0, columnspan=2, pady=10)
+    score_row.grid(row = 2, column=0, columnspan=2)
 
     player_info_row = tk.Frame(self.right_menu["right_menu"], bg="white")
     # Need: hp, regen, atk_speed, damage, speed
@@ -788,7 +805,7 @@ class Game:
     self.right_menu["player_speed_label"] = tk.Label(player_info_row, text=f"Spd: {self.player.speed_per_second}", bg="white", font=button_font)
     self.right_menu["player_speed_label"].grid(row = 1, column= 4, padx= 2)
 
-    player_info_row.grid(row = 2, column=0, columnspan=2, pady=10)
+    player_info_row.grid(row = 3, column=0, columnspan=2, pady=10)
 
     # Define Enemy info labels
     # Need: hp, atk_speed, damage, respawn_interval, max_on_screen
@@ -813,7 +830,7 @@ class Game:
     self.right_menu["enemy_max_on_screen_label"] = tk.Label(enemy_info_row, text=f"Max: {self.max_enemies_on_screen}", bg="white", font=button_font)
     self.right_menu["enemy_max_on_screen_label"].grid(row = 1, column = 4, padx=2)
 
-    enemy_info_row.grid(row = 3, column=0, columnspan=2, pady=10)
+    enemy_info_row.grid(row = 4, column=0, columnspan=2, pady=10)
 
     # Define bomb info labels
     # Need delay, radius, damage, respawn_interval, max
@@ -837,7 +854,7 @@ class Game:
     self.right_menu["bomb_max_on_screen_label"] = tk.Label(bomb_info_row, text=f"Max: {self.max_bombs_on_screen}", bg="white", font=button_font)
     self.right_menu["bomb_max_on_screen_label"].grid(row = 1, column = 4, padx = 2)
 
-    bomb_info_row.grid(row = 4, column = 0, columnspan =2, pady=10)
+    bomb_info_row.grid(row = 5, column = 0, columnspan =2, pady=10)
 
     self.right_menu["right_menu"].grid(row = 0, column = 1, sticky="NEWS", padx=10, pady=10)
 
@@ -845,7 +862,7 @@ class Game:
     self.right_menu["save_button"].bind("<Button-1>", self.save_game)
 
   def update_right_menu(self):
-    # Updates labels in the right menu
+    """Updates labels in the right menu"""
     # Update score lables
     self.right_menu["score_label"]["text"] = f"Score: {self.score}"
     self.right_menu["score_per_second_label"]["text"] = f"Score/sec: {self.score_per_second}"
@@ -873,11 +890,13 @@ class Game:
     self.right_menu["bomb_max_on_screen_label"]["text"] = f"Max: {self.max_bombs_on_screen}"
 
   def increase_score(self, amount: float):
+    """Increases score by amount in parameter"""
     self.score += amount
     # Round the score to 1 d.p
     self.score = round(self.score, 1)
 
   def deal_damage_to_player(self, damage):
+    """Deals damage to player and handles game over checks"""
     # Too tired to put gameover checks after any damage instance to player, so created dedicated function
     # This prevents health bar from becoming wacky, since health can't get less than 0
     if self.player.health - damage < 0:
@@ -890,6 +909,7 @@ class Game:
       self.gameover()
     
   def instantiate_player(self):
+    """Create an instance of ship class named player"""
     self.player = Ship(
       canvas,
       self.player_width,
@@ -913,6 +933,7 @@ class Game:
     )
   
   def define_player_initial_variables(self):
+    """Defines player variables"""
     self.player_width = 45
     self.player_height = 50
     self.player_speed_per_second = 350
@@ -928,6 +949,7 @@ class Game:
     self.player_hp_regen_interval = 30
     
   def define_enemy_initial_variables(self):
+    """defines enemy variables"""
     self.max_enemies_on_screen = 2
     self.enemy_ship_spawn_interval_seconds = 8
     self.absolute_max_enemies_on_screen = 8
@@ -946,6 +968,7 @@ class Game:
     self.enemy_ship_bullets_per_volley = 1
   
   def define_bomb_initial_variables(self):
+    """Defines all bomb variables"""
     self.show_blast_seconds = 0.3
     self.bomb_blast_delay = 4
     self.bomb_blast_radius = 80
@@ -958,6 +981,7 @@ class Game:
     self.absolute_max_bombs_on_screen = 8
   
   def define_player_scaling_variables(self):
+    """Defines all player scaling variables"""
     self.player_upgrade_interval_seconds = 15
     self.player_upgrade_choices = 4
     self.player_health_gain = 3
@@ -966,24 +990,26 @@ class Game:
     self.player_shoot_rate_gain = 0.5
     self.player_speed_gain = 50
     self.player_hp_regen_interval_reduction = 7
+    self.player_hp_regen_interval_absolute_min = 1
     self.player_bullet_size_gain = 3
   
   def define_enemy_scaling_variables(self):
-    
+    """Defines enemy scaling variables, like shoot rate gain"""
     self.enemy_upgrade_interval_seconds = 12
     self.enemy_upgrades_per_interval = 2
     self.enemy_health_gain = 1
     self.enemy_damage_gain = 1
     self.enemy_bullets_per_volley_gain = 1
     self.enemy_absolute_max_bullets_per_volley = 3
-    self.enemy_shoot_rate_gain = 0.2
+    self.enemy_shoot_rate_gain = 0.25
     self.enemy_absolute_max_shoot_rate = 2.5
-    self.enemy_bullet_width_gain = 1
+    self.enemy_bullet_width_gain = 1.5
     self.enemy_bullet_speed_per_second_gain = 15
     self.max_enemies_on_screen_gain = 1
-    self.enemy_ship_spawn_interval_decrease = 1
+    self.enemy_ship_spawn_interval_decrease = 2
   
   def define_bomb_scaling_variables(self):
+    """Defines bomb scaling variables like damage gain"""
     self.bomb_upgrade_interval_seconds = 12
     self.bomb_upgrades_per_interval = 2
     self.bomb_blast_delay_decrease = 0.3
@@ -996,15 +1022,63 @@ class Game:
     self.bomb_absolute_min_spawn_interval = 2
   
   def define_score_variables(self):
+    """Defines initial variables for score processing"""
     self.score = 0
     self.score_per_enemy = 20
     self.score_per_enemy_base = self.score_per_enemy
     self.score_per_second = 1
     self.score_per_second_gain = 0.5
     self.score_enemy_multiplier = 1
- 
-  def is_point_usable(self, x, y):
-    # Check that point generated is valid, i.e  not occupied by anything
+  
+  def process_cheats(self):
+    """Activates cheats in the config.cheatcodes"""
+    # Cheatcodes:
+    # infi - Infinite player health
+    # aezkami - Infinite player damage
+    # quortli - player scaling increased by factor of 2
+    # junji - bombs deal no damage
+    # scrcheat - score gain is multiplied by 2
+    # uionjs - enemies scale slower by factor of 2
+    cheat_list = self.config["game"]["cheat_list"]
+    for cheat in cheat_list:
+      # Infinite player health
+      if cheat == "infi":
+        self.player.health = float("inf")
+        self.player.max_health = float("inf")
+      # Infinite damage
+      elif cheat == "aezkami":
+        self.player.bullet_damage = float("inf")
+      # Player scaling two times faster
+      elif cheat == "quortli":
+        self.player_health_gain *= 2
+        self.player_damage_gain *= 2
+        self.player_bullets_per_volley_gain *= 2
+        self.player_shoot_rate_gain *= 2
+        self.player_speed_gain *= 2
+        self.player_hp_regen_interval_reduction *= 2
+        self.player_bullet_size_gain *= 2
+      # Bombs do no damage
+      elif cheat == "junji":
+        self.bomb_blast_damage = 0
+        self.bomb_blast_damage_gain = 0
+      # Double score gain
+      elif cheat == "scrcheat":
+        self.score_per_second_gain *= 2
+        self.score_enemy_multiplier *= 2
+      # Enemies scale two times slower
+      elif cheat == "uionjs":
+        self.enemy_upgrades_per_interval = max(1, self.enemy_upgrades_per_interval // 2)
+        self.enemy_health_gain = max(1, self.enemy_health_gain // 2)
+        self.enemy_damage_gain = max(1, self.enemy_damage_gain // 2)
+        self.enemy_bullets_per_volley_gain = max(1, self.enemy_bullets_per_volley_gain // 2)
+        self.enemy_shoot_rate_gain /= 2
+        self.enemy_bullet_width_gain /= 2
+        self.enemy_bullet_speed_per_second_gain /= 2
+        self.max_enemies_on_screen_gain = max(1, self.max_enemies_on_screen_gain // 2)
+        self.enemy_ship_spawn_interval_decrease = max(1, self.enemy_ship_spawn_interval_decrease // 2)
+
+  def is_point_usable(self, x: float, y: float):
+    """Check that point generated is valid, i.e  not occupied by anything"""
     # Check that point is not within no spawn radius around player
     distance_to_player = utils.calculate_length(x, y, self.player.focal_point[0], self.player.focal_point[1])
     if distance_to_player < self.no_enemy_spawn_around_player_radius + max(self.player.ship_width, self.player.ship_height):
@@ -1019,7 +1093,7 @@ class Game:
     return True
   
   def is_player_in_bomb_radius(self, bomb: Bomb):
-    # Determines whether any player's hitbox points are within the given bombs blast radius
+    """Determines whether any player's hitbox points are within the given bombs blast radius"""
     for hitbox in self.player.hitboxes:
       for i in range(0, len(hitbox) - 2, 2):
         x = hitbox[i]
@@ -1033,7 +1107,7 @@ class Game:
     return False
   
   def generate_random_point(self):
-    # Generate a random point not occupied by anything
+    """Generate a random point not occupied by anything"""
     min_x = math.ceil(self.enemy_ship_width / 2 + self.min_distance_between_bounds)
     max_x = math.ceil(self.canvas_dimensions.get("x") - self.enemy_ship_width / 2 - self.min_distance_between_bounds)
     min_y = math.ceil(self.enemy_ship_height / 2 + self.min_distance_between_bounds)
@@ -1048,7 +1122,7 @@ class Game:
     return [point_x, point_y]
       
   def spawn_enemy_ship(self):
-    # Spawn a new enemy ship in a valid random position
+    """Spawn a new enemy ship in a valid random position"""
     if len(self.enemy_ships_list) < self.max_enemies_on_screen:
       
       spawn_point = self.generate_random_point()
@@ -1078,7 +1152,7 @@ class Game:
       self.enemy_ships_list.append(enemy_ship)
   
   def spawn_enemy_bomb(self):
-    
+    """Spawns a new bomb near player"""
     def difference ():
       temp = random.randint(0, 1)
       if temp == 0:
@@ -1100,11 +1174,12 @@ class Game:
       self.enemy_bomb_list.append(bomb)
   
   def regenerate_player_hp(self):
+    """Only regen health if not at full health"""
     if self.player.health < self.player.max_health:
       self.player.health += 1
 
   def handle_timed_events(self):
-    # Has all timed events checks. 
+    """Check and run all timed events if interval is met"""
     
     
     if self.seconds_elapsed % self.bomb_spawn_interval == 0:
@@ -1129,7 +1204,7 @@ class Game:
     self.update_right_menu()
 
   def handle_enemy_ships(self):
-    # Iterate through all enemy ships all handle events with them
+    """Iterate through all enemy ships all handle events with them"""
     for i in range(len(self.enemy_ships_list)):
       enemy_ship = self.enemy_ships_list[i]
       # Attempt to shoot valley every frame, whether is allowed to shoot will be handled in the inner method
@@ -1138,7 +1213,7 @@ class Game:
       self.handle_enemy_bullets_collisions(i)
       
   def handle_bombs(self):
-    # Function to do everything on bombs
+    """Function to do everything on bombs"""
     delete_indexes = []
     for i in range(len(self.enemy_bomb_list)):
       bomb = self.enemy_bomb_list[i]
@@ -1155,7 +1230,7 @@ class Game:
     self.delete_redundant_bombs(delete_indexes)
     
   def on_frame(self):
-    # Function for everything that happens every frame
+    """Function for everything that happens every frame"""
     # Deletes everything from the canvas
     canvas.delete("all")
     # ORDER IS IMPORTANT
@@ -1183,12 +1258,14 @@ class Game:
       self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
   
   def point_enemy_ships_in_list_to_player(self, index_list: list):
+    """Points certain ships towards a player"""
     for index in index_list:
       enemy_ship = self.enemy_ships_list[index]
       angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
       enemy_ship.transform(angle_to_player)
 
   def point_enemy_ships_to_player(self):
+    """Points all enemy ships towards the player"""
     threads = []
     lists = utils.separate_list_into_index_parts(self.enemy_ships_list, thread_count)
     for list in lists:
@@ -1204,7 +1281,7 @@ class Game:
     #   enemy_ship.transform(angle_to_player)
 
   def on_cursor_move(self, event):
-    # Adjusts angle variable depending on where user points the cursor
+    """Adjusts angle variable depending on where user points the cursor"""
     # Fix bug where ships will be pointing when paused
     if self.next_frame_after_id != 0:
       x = event.x
@@ -1214,7 +1291,7 @@ class Game:
       self.point_enemy_ships_to_player()
   
   def on_key_press(self, event):
-    # Handles key presses
+    """Handles key presses"""
     key = event.char
     # Movement key events trigger, trigger if game is not paused
     if self.controls.get("move") == key and self.next_frame_after_id != 0:
@@ -1240,21 +1317,22 @@ class Game:
         self.delete_spreadsheet_image()
         #self.resume()
 
-    # If key is a number and the game is in upgrading state
+    # If key is a number and the game is in upgrading state, call upgrade function with key pressed
     elif key in [str(number) for number in range(1, self.player_upgrade_choices + 1)] and self.game_state == 2:
       # Need to take 1 away, because upgrade choices array is 0 based
       self.upgrade_player(int(key) - 1)
   
   def on_click(self, event):
-    # Only process click if the game is not paused
+    """Only process click if the game is not paused"""
     if self.next_frame_after_id != 0:
       self.player.shoot_volley(self.frame_counter, self.seconds_elapsed)
   
   def resume(self):
-    # Assign next after id and assign after
+    """Assign next after id and assign after"""
     self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
 
   def pause(self):
+    """Pause the game"""
     if self.next_frame_after_id != 0:
       # Cancel canvas after and assign after id = 0
       canvas.after_cancel(self.next_frame_after_id)
@@ -1264,6 +1342,7 @@ class Game:
       canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
   
   def draw_everything(self):
+    """Draws everything"""
     # draw enemy ships
     for enemy_ship in self.enemy_ships_list:
       enemy_ship.draw()
@@ -1275,7 +1354,7 @@ class Game:
     self.player.draw()
 
   def gameover(self):
-    # Function that handles what happens after players health is 0
+    """Function that handles what happens after players health is 0"""
     if self.game_state == 0:
       # Change state to game ended
       self.game_state = 1
@@ -1287,6 +1366,7 @@ class Game:
       utils.display_leaderboard(self.leaderboard_file_path)
       
   def handle_enemy_bullets_collisions(self, enemy_ship_index: int):
+    """Checks collsion of enemy bullets with the player ship and processes if collision detected"""
     enemy_ship = self.enemy_ships_list[enemy_ship_index]
     delete_indexes = []
     # Iterate through enemy bullets
@@ -1302,7 +1382,7 @@ class Game:
     self.delete_redundant_enemy_bullets(delete_indexes)
 
   def delete_redundant_enemies(self, delete_indexes: list):
-    # Delete redundant enemy ships from ships list, and add bullets to remnant list, so that they don't dissapear
+    """Delete redundant enemy ships from ships list, and add bullets to remnant list, so that they don't dissapear"""
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
       # Add bullets from the destroyed ship to the remnant bullets
@@ -1316,7 +1396,7 @@ class Game:
           delete_indexes[j] -= 1
 
   def delete_redundant_player_bullets(self, delete_indexes: list):
-    # Delete redundant player bullets from bullet list
+    """Delete redundant player bullets from bullet list"""
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
       self.player.bullet_list.pop(delete_index)
@@ -1326,7 +1406,7 @@ class Game:
           delete_indexes[j] -= 1
   
   def delete_redundant_enemy_bullets(self, delete_indexes: list):
-    # Delete redundant enemy bullets from bullet lists
+    """Delete redundant enemy bullets from bullet lists"""
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
       # Get enemy ship index from delete index elem and pop bullet at second arg
@@ -1337,7 +1417,7 @@ class Game:
           delete_indexes[j][1] -= 1
 
   def delete_redundant_remnant_bullets(self, delete_indexes: list):
-    # Delete redundant player bullets from bullet list
+    """Delete redundant player bullets from bullet list"""
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
       self.remnant_bullets.pop(delete_index)
@@ -1347,7 +1427,7 @@ class Game:
           delete_indexes[j] -= 1
   
   def delete_redundant_bombs(self, delete_indexes: list):
-    # Delete redundant bombs from bombs list
+    """Delete redundant bombs from bombs list"""
     for i in range(len(delete_indexes)):
       delete_index = delete_indexes[i]
       self.enemy_bomb_list.pop(delete_index)
@@ -1357,7 +1437,7 @@ class Game:
           delete_indexes[j] -= 1
 
   def handle_remnant_bullets(self):
-    # Handle all events to do with remnant bullets (bullets from ships that were destroyed)
+    """Handle all events to do with remnant bullets (bullets from ships that were destroyed)"""
     delete_indexes_remnant = []
     delete_indexes_player_bullets = []
     for i in range(len(self.remnant_bullets)):
@@ -1394,10 +1474,11 @@ class Game:
     self.delete_redundant_remnant_bullets(delete_indexes_remnant)
 
   def add_bullets_to_remnant_list(self, enemy_ship: Ship):
-    # Function to add dead ships bullets to remnant list, to prevent bullets from dissapearing
+    """Function to add dead ships bullets to remnant list, to prevent bullets from dissapearing"""
     self.remnant_bullets += enemy_ship.bullet_list
 
   def handle_player_bullets_collisions(self):
+    """Checks player bullets collision with enemy bullets or enemy ships. Processes if collission is detected"""
     delete_indexes_player_bullets = []
     delete_indexes_enemy_bullets = []
     delete_indexes_ships = []
@@ -1446,6 +1527,7 @@ class Game:
     self.delete_redundant_enemies(delete_indexes_ships)
     
   def handle_player_enemy_ship_collision(self):
+    """Checks player ship and enemy ship collision and processes if collision is detected"""
     delete_indexes = []
     for i in range(len(self.enemy_ships_list)):
       enemy_ship = self.enemy_ships_list[i]
@@ -1462,6 +1544,7 @@ class Game:
     self.delete_redundant_enemies(delete_indexes)
 
   def generate_upgrades(self):
+    """Generates player upgrade choices"""
     # To prevent user from upausing
     self.game_state = 2
     self.pause()
@@ -1503,6 +1586,7 @@ class Game:
       canvas.create_text(self.canvas_centre_x, y_pos, font=f"Arial {font_size - 5} bold", text = f"{i + 1}: {upgrade_texts[upgrade_index]}")
     
   def upgrade_player(self, index: int):
+    """Processes user inputed upgrade choice and applies it"""
     # Actually implements upgrades
     chosen_upgrade = self.upgrade_indexes[index]
     # 0 - Increase  max health by {player_health_gain}
@@ -1525,14 +1609,14 @@ class Game:
       self.player.shoot_rate = self.fps / self.player.shoot_rate_per_second
     elif chosen_upgrade == 4:
       self.player.bullets_per_volley += self.player_bullets_per_volley_gain
-    elif(chosen_upgrade == 5):
+    elif chosen_upgrade == 5:
       # Prevent the hp regen interval from going into negatives!
       temp = self.player_hp_regen_interval - self.player_hp_regen_interval_reduction
-      if temp <= 1:
-        self.player_hp_regen_interval = 1
+      if temp <= self.player_hp_regen_interval_absolute_min:
+        self.player_hp_regen_interval = self.player_hp_regen_interval_absolute_min
       else:
         self.player_hp_regen_interval = temp
-    elif (chosen_upgrade == 6):
+    elif chosen_upgrade == 6:
       self.player.bullet_width += self.player_bullet_size_gain
       self.player.bullet_height += self.player_bullet_size_gain
       self.player.volley_bullets_offset = bullet_volley_offset + self.player.bullet_width
@@ -1543,7 +1627,7 @@ class Game:
     self.resume()
 
   def upgrade_enemies(self):
-    # Implement random upgrades on enemy ships
+    """Implements random upgrades on enemy ships"""
     upgrade_indexes = []
     # 0 - Increase health by {enemy_health_gain}
     # 1 - Increase damage by {enemy_damage_gain}
@@ -1609,7 +1693,7 @@ class Game:
       print(f"{chosen_upgrade} implemented on enemies\n")
   
   def upgrade_bombs(self):
-    # Implement upgrades on bombs
+    """Implements upgrades on bombs"""
     upgrade_indexes = []
     # 0 - Decrease blast delay by {blast_delay_decrease}
     # 1 - Increase blast radius by {blast_radius_gain}
@@ -1665,7 +1749,7 @@ class Game:
       print(f"{chosen_upgrade} was implemented on bombs\n")
   
   def display_spreadsheet_image(self):
-    # Function to display spreadsheet image on top of everything
+    """Function to display spreadsheet image on top of everything"""
     # Needs to be self. so that can be removed in the remove function
     self.spreadsheet = tk.PhotoImage(file="images/spreadsheet.PNG")
     self.spreadsheet_overlay = tk.Label(image=self.spreadsheet)
@@ -1673,10 +1757,12 @@ class Game:
     self.spreadsheet_overlay.grid(row = 0, column = 0, columnspan = 2, sticky = "NSEW")
   
   def delete_spreadsheet_image(self):
+    """Deletes spreadsheet image"""
     self.spreadsheet_overlay.destroy()
     self.spreadsheet_overlay = None
   
   def save_game(self, event):
+    """Saves the current state of the game via pickle library into a file with filename given by user"""
     self.pause()
     canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
     # Need to delete all attributes that are tkinter elements
@@ -1688,20 +1774,24 @@ class Game:
     # Delete right menu, because it uses tkinter elements
     self.right_menu = None
     self.spreadsheet = None
-    # Ask the user for filepath of the save
-    save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
-    file = open(save_file_path, 'wb')
-    # Use pickle to save the Game class
-    pickle.dump(self, file)
-    file.close()
-    # Restore bomb images
-    for i in range(len(bomb_image_list)):
-      self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
-    # Restore right menu
-    self.create_right_menu()
+    # this try is for when the user clicks cancel, which is impossible to prevent
+    try:
+      # Ask the user for filepath of the save
+      save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
+      file = open(save_file_path, 'wb')
+      # Use pickle to save the Game class
+      pickle.dump(self, file)
+      file.close()
+      # Restore bomb images
+      for i in range(len(bomb_image_list)):
+        self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
+      # Restore right menu
+      self.create_right_menu()
+    except:
+      pass
   
   def record_in_leaderboard(self):
-    # Record the game in the leaderboard
+    """Record the game in the leaderboard"""
     leaderboard_data = utils.get_leaderboard_data(self.leaderboard_file_path)
     # Check if the current name is already in leaderboard
     present = False
@@ -1729,13 +1819,13 @@ class Game:
 
 
 class Menu:
-  # Class for the menu, includes load, cheat code enter and key remapping
+  """Class for the menu, includes load, cheat code enter and key remapping"""
   def __init__(self):
     pass
 
 
 class Application: 
-  # Class for the whole application, contains tkinter top window and etc.
+  """Class for the whole application, contains tkinter top window and etc."""
   def __init__(self):
     self.main_window_dimensions = {
       "x": 1600,
@@ -1753,11 +1843,38 @@ class Application:
     self.on_app_state_change()
     main_window.mainloop()
 
-  def modify_config(self, key, value):
+  def modify_config(self, key: str, value):
+    """Modifies config"""
     self.config[key] = value
+  
+  def process_cheat_code(self, code: str):
+    """Process cheat code entered from the menu"""
+    # If cheat code is valid, then activates it in the config
+    # Cheatcodes:
+    # infi - Infinite player health
+    # aezkami - Infinite player damage
+    # quortli - player scaling increased by factor of 2
+    # junji - bombs deal no damage
+    # scrcheat - score gain is multiplied by 2
+    # uionjs - enemies scale slower by factor of 2
+    codes = {
+      "infi": "Infinite player health",
+      "aezkami": "Infinite player damage",
+      "quortli": "Player scaling increased by factor of 2",
+      "junji": "Bombs deal no damage",
+      "scrcheat": "Score gain is multiplied by 2",
+      "uionjs" : "Enemies scale 2 times slower"
+    }
+    # Check if the code entered is a valid cheatcode
+    temp = codes.get(code)
+    if temp != None:
+      self.config["game"]["cheat_list"].append(code)
+      print(f"{code} cheatcode applied: {temp}")
+    else:
+      print(f"{code} is not a valid cheat code")
 
   def configure_main_window(self):
-    # Initializes the main_window
+    """Initializes the main_window"""
     global main_window
     main_window = tk.Tk()
     main_window.title("SpaceShootaz")
@@ -1771,7 +1888,7 @@ class Application:
     main_window.resizable(False, False)
   
   def create_leaderboard(self):
-    #Create leaderboard file if doesnt exist
+    """Create leaderboard file if it doesnt exist"""
     temp = self.config["game"]["leaderboard_file_path"]
     if not pathlib.Path(temp).exists():
       file = open(self.config["game"]["leaderboard_file_path"], "w")
@@ -1780,7 +1897,7 @@ class Application:
       file.close()
 
   def create_new_config(self):
-    # Creates a new config.ini file with standard settings below
+    """Creates a new config.ini file with standard settings below"""
     parser = configparser.ConfigParser()
     parser.add_section("IDENTITY")
     parser.set("IDENTITY", "Name", "Bob the Builder")
@@ -1797,6 +1914,7 @@ class Application:
     file.close()
 
   def parse_config(self):
+    """Parses the config file into a self.config variable"""
     # Checks whether there is a config file
     file_exists = pathlib.Path("config.ini").exists()
     if not file_exists:
@@ -1823,9 +1941,17 @@ class Application:
 
       self.config["controls"] = controls
       self.config["game"] = game_config
+      self.config["game"]["cheat_list"] = []
       self.create_leaderboard()
   
   def on_app_state_change(self):
+    """Function for changing app states
+    App states:
+    main_menu
+    load
+    cheat_codes
+    game
+    """
     # Destroy children widgets to reset the window on state change
     lst = main_window.grid_slaves()
     for l in lst:
@@ -1833,6 +1959,12 @@ class Application:
     
     if self.state == "game":
       #self.modify_config("save_file_path", "saves/this_save.txt")
+      #self.process_cheat_code("infi")
+      #self.process_cheat_code("aezkami")
+      # self.process_cheat_code("quortli")
+      # self.process_cheat_code("junji")
+      # self.process_cheat_code("scrcheat")
+      # self.process_cheat_code("uionjs")
       game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
@@ -1840,7 +1972,7 @@ class Application:
   
 
 def main():
-  
+  """Starts the app"""
   global utils
   utils = Utilities()
   app = Application()
@@ -1848,6 +1980,7 @@ def main():
   
 
 if __name__ == "__main__":
-  cProfile.run("main()")
+  """Entry point into program"""
+  main()
 
 #TODO: cheats, menu
