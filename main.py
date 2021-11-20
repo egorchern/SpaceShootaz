@@ -729,7 +729,7 @@ class Game:
       file = open(self.save_file_path, 'rb')
       self: Game = pickle.load(file)
       file.close()
-
+    self.process_cheats()
     self.create_right_menu()
     # Bind events
     canvas.bind("<Motion>", self.on_cursor_move)
@@ -976,12 +976,12 @@ class Game:
     self.enemy_damage_gain = 1
     self.enemy_bullets_per_volley_gain = 1
     self.enemy_absolute_max_bullets_per_volley = 3
-    self.enemy_shoot_rate_gain = 0.2
+    self.enemy_shoot_rate_gain = 0.25
     self.enemy_absolute_max_shoot_rate = 2.5
-    self.enemy_bullet_width_gain = 1
+    self.enemy_bullet_width_gain = 1.5
     self.enemy_bullet_speed_per_second_gain = 15
     self.max_enemies_on_screen_gain = 1
-    self.enemy_ship_spawn_interval_decrease = 1
+    self.enemy_ship_spawn_interval_decrease = 2
   
   def define_bomb_scaling_variables(self):
     self.bomb_upgrade_interval_seconds = 12
@@ -1002,7 +1002,53 @@ class Game:
     self.score_per_second = 1
     self.score_per_second_gain = 0.5
     self.score_enemy_multiplier = 1
- 
+  
+  def process_cheats(self):
+    # Actually activates cheats
+    # Cheatcodes:
+    # infi - Infinite player health
+    # aezkami - Infinite player damage
+    # quortli - player scaling increased by factor of 2
+    # junji - bombs deal no damage
+    # scrcheat - score gain is multiplied by 2
+    # uionjs - enemies scale slower by factor of 2
+    cheat_list = self.config["game"]["cheat_list"]
+    for cheat in cheat_list:
+      # Infinite health
+      if cheat == "infi":
+        self.player.health = float("inf")
+      # Infinite damage
+      elif cheat == "aezkami":
+        self.player.bullet_damage = float("inf")
+      # Player scaling two times faster
+      elif cheat == "quortli":
+        self.player_health_gain *= 2
+        self.player_damage_gain *= 2
+        self.player_bullets_per_volley_gain *= 2
+        self.player_shoot_rate_gain *= 2
+        self.player_speed_gain *= 2
+        self.player_hp_regen_interval_reduction *= 2
+        self.player_bullet_size_gain *= 2
+      # Bombs do no damage
+      elif cheat == "junji":
+        self.bomb_blast_damage = 0
+        self.bomb_blast_damage_gain = 0
+      # Double score gain
+      elif cheat == "scrcheat":
+        self.score_per_second_gain *= 2
+        self.score_enemy_multiplier *= 2
+      # Enemies scale two times slower
+      elif cheat == "uionjs":
+        self.enemy_upgrades_per_interval = max(1, self.enemy_upgrades_per_interval // 2)
+        self.enemy_health_gain = max(1, self.enemy_health_gain // 2)
+        self.enemy_damage_gain = max(1, self.enemy_damage_gain // 2)
+        self.enemy_bullets_per_volley_gain = max(1, self.enemy_bullets_per_volley_gain // 2)
+        self.enemy_shoot_rate_gain /= 2
+        self.enemy_bullet_width_gain /= 2
+        self.enemy_bullet_speed_per_second_gain /= 2
+        self.max_enemies_on_screen_gain = max(1, self.max_enemies_on_screen_gain // 2)
+        self.enemy_ship_spawn_interval_decrease = max(1, self.enemy_ship_spawn_interval_decrease // 2)
+
   def is_point_usable(self, x, y):
     # Check that point generated is valid, i.e  not occupied by anything
     # Check that point is not within no spawn radius around player
@@ -1848,6 +1894,7 @@ class Application:
 
       self.config["controls"] = controls
       self.config["game"] = game_config
+      self.config["game"]["cheat_list"] = []
       self.create_leaderboard()
   
   def on_app_state_change(self):
@@ -1858,6 +1905,12 @@ class Application:
     
     if self.state == "game":
       #self.modify_config("save_file_path", "saves/this_save.txt")
+      #self.process_cheat_code("infi")
+      #self.process_cheat_code("aezkami")
+      self.process_cheat_code("quortli")
+      self.process_cheat_code("junji")
+      self.process_cheat_code("scrcheat")
+      self.process_cheat_code("uionjs")
       game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
