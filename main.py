@@ -990,6 +990,7 @@ class Game:
     self.player_shoot_rate_gain = 0.5
     self.player_speed_gain = 50
     self.player_hp_regen_interval_reduction = 7
+    self.player_hp_regen_interval_absolute_min = 1
     self.player_bullet_size_gain = 3
   
   def define_enemy_scaling_variables(self):
@@ -1040,9 +1041,10 @@ class Game:
     # uionjs - enemies scale slower by factor of 2
     cheat_list = self.config["game"]["cheat_list"]
     for cheat in cheat_list:
-      # Infinite health
+      # Infinite player health
       if cheat == "infi":
         self.player.health = float("inf")
+        self.player.max_health = float("inf")
       # Infinite damage
       elif cheat == "aezkami":
         self.player.bullet_damage = float("inf")
@@ -1607,14 +1609,14 @@ class Game:
       self.player.shoot_rate = self.fps / self.player.shoot_rate_per_second
     elif chosen_upgrade == 4:
       self.player.bullets_per_volley += self.player_bullets_per_volley_gain
-    elif(chosen_upgrade == 5):
+    elif chosen_upgrade == 5:
       # Prevent the hp regen interval from going into negatives!
       temp = self.player_hp_regen_interval - self.player_hp_regen_interval_reduction
-      if temp <= 1:
-        self.player_hp_regen_interval = 1
+      if temp <= self.player_hp_regen_interval_absolute_min:
+        self.player_hp_regen_interval = self.player_hp_regen_interval_absolute_min
       else:
         self.player_hp_regen_interval = temp
-    elif (chosen_upgrade == 6):
+    elif chosen_upgrade == 6:
       self.player.bullet_width += self.player_bullet_size_gain
       self.player.bullet_height += self.player_bullet_size_gain
       self.player.volley_bullets_offset = bullet_volley_offset + self.player.bullet_width
@@ -1959,10 +1961,10 @@ class Application:
       #self.modify_config("save_file_path", "saves/this_save.txt")
       #self.process_cheat_code("infi")
       #self.process_cheat_code("aezkami")
-      self.process_cheat_code("quortli")
-      self.process_cheat_code("junji")
-      self.process_cheat_code("scrcheat")
-      self.process_cheat_code("uionjs")
+      # self.process_cheat_code("quortli")
+      # self.process_cheat_code("junji")
+      # self.process_cheat_code("scrcheat")
+      # self.process_cheat_code("uionjs")
       game = Game(self.main_window_dimensions, self.config)
       main_window.columnconfigure(0, weight=1)
       main_window.columnconfigure(1, weight=1)
