@@ -1350,6 +1350,7 @@ class Game:
       self.pause()
       # This allows the frames to settle, so no missing staff
       self.draw_everything()
+      self.update_right_menu()
       canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Game Over!")
       self.record_in_leaderboard()
       utils.display_leaderboard(self.leaderboard_file_path)
