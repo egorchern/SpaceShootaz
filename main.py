@@ -1814,6 +1814,8 @@ class Game:
 class CheatcodesMenu:
   def __init__(self, change_app_state, config, process_cheat_code):
     self.change_app_state = change_app_state
+    # flush current cheats
+    config["game"]["cheat_list"] = []
     self.config = config
     self.process_cheat_code = process_cheat_code
     self.menu = {}
@@ -2077,8 +2079,8 @@ class Application:
     cheat_codes
     game
     """
-    # flush current cheats
-    self.config["game"]["cheat_list"] = []
+    
+    
     self.state = new_state
     # Destroy children widgets to reset the window on state change
     lst = main_window.grid_slaves()
