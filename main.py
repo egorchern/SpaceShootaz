@@ -1902,11 +1902,11 @@ class Menu:
     self.menu["Menu_frame"] = tk.Frame(main_window, bg="white")
     # I HATE TKINTER
     self.menu["Menu_frame"].columnconfigure(0, weight = 1)
-    self.menu["Menu_frame"].rowconfigure(0, weight =2)
+    self.menu["Menu_frame"].rowconfigure(0, weight =1)
     self.menu["Menu_frame"].rowconfigure(1, weight =1)
     self.menu["Menu_frame"].rowconfigure(2, weight =1)
     self.menu["Menu_frame"].rowconfigure(3, weight =1)
-    self.menu["Menu_frame"].rowconfigure(4, weight =1)
+    # main_windowself.menu["Menu_frame"].rowconfigure(4, weight =1)
     self.menu["Background"] = tk.Label(self.menu["Menu_frame"], image=self.bg)
     self.menu["Background"].place(x = 0, y = 0, relwidth=1, relheight=1)
     self.menu["New_game"] = tk.Button(self.menu["Menu_frame"], text="New game", font=button_font, height=2, width=15)
@@ -1917,8 +1917,8 @@ class Menu:
     self.menu["Cheats"].grid(row = 2, column = 0, sticky="")
     self.menu["Leaderboard"] = tk.Button(self.menu["Menu_frame"], text="Leaderboard", font=button_font, height=2, width=15)
     self.menu["Leaderboard"].grid(row = 3, column = 0, sticky="")
-    self.menu["Settings"] = tk.Button(self.menu["Menu_frame"], text="Settings", font=button_font, height=2, width=15)
-    self.menu["Settings"].grid(row = 4, column = 0, sticky="")
+    # self.menu["Settings"] = tk.Button(self.menu["Menu_frame"], text="Settings", font=button_font, height=2, width=15)
+    # self.menu["Settings"].grid(row = 4, column = 0, sticky="")
     self.menu["Menu_frame"].grid(row = 0, column = 0, sticky="NSEW")
     # Bind the left mouse press to game start
     self.menu["New_game"].bind("<Button-1>", lambda a: self.change_app_state("game"))
@@ -1929,7 +1929,7 @@ class Menu:
     # Bind cheat codes menu display
     self.menu["Cheats"].bind("<Button-1>", lambda a: self.change_app_state("cheat_codes"))
     # Bind settings open
-    self.menu["Settings"].bind("<Button-1>", lambda a: os.system(f"config.ini"))
+    # self.menu["Settings"].bind("<Button-1>", lambda a: os.system(f"config.ini"))
     # Needed to display the background
     main_window.mainloop()
 
@@ -2008,11 +2008,15 @@ class Application:
   def create_leaderboard(self):
     """Create leaderboard file if it doesnt exist"""
     temp = self.config["game"]["leaderboard_file_path"]
+    # Creates a new leaderboard if it does not exist
     if not pathlib.Path(temp).exists():
       file = open(self.config["game"]["leaderboard_file_path"], "w")
       standard_leaderboard = "1) Jess: 1482.5\n2) Crab: 391.5\n3) Michael: 124"
       file.write(standard_leaderboard)
       file.close()
+    # Creates saves folder if it doesn't already exist
+    if not pathlib.Path("./saves").exists():
+      os.mkdir("./saves")
 
   def create_new_config(self):
     """Creates a new config.ini file with standard settings below"""
