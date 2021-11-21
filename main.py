@@ -2077,6 +2077,8 @@ class Application:
     cheat_codes
     game
     """
+    # flush current cheats
+    self.config["game"]["cheat_list"] = []
     self.state = new_state
     # Destroy children widgets to reset the window on state change
     lst = main_window.grid_slaves()
