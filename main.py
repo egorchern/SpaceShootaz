@@ -679,9 +679,9 @@ class Ship:
 class Game:
   """ Class for the game, includes frame trigger, pause/resume functions and etc. """
   def __init__(self, main_window_dimensions: dict, config: dict, change_app_state):
-    
-    main_window.columnconfigure(0, weight=1)
-    main_window.columnconfigure(1, weight=1)
+    self.change_app_state = change_app_state
+    # main_window.columnconfigure(0, weight=1)
+    # main_window.columnconfigure(1, weight=1)
     self.config = config
     self.save_file_path = self.config["save_file_path"]
     self.leaderboard_file_path = self.config["game"]["leaderboard_file_path"]
@@ -860,6 +860,7 @@ class Game:
 
     # Bind save game button
     self.right_menu["save_button"].bind("<Button-1>", self.save_game)
+    self.right_menu["back_button"].bind("<Button-1>", lambda a: self.change_app_state("menu"))
 
   def update_right_menu(self):
     """Updates labels in the right menu"""
@@ -936,7 +937,7 @@ class Game:
     """Defines player variables"""
     self.player_width = 45
     self.player_height = 50
-    self.player_speed_per_second = 350
+    self.player_speed_per_second = 335
     self.player_bullet_width = 10
     self.player_bullet_height = 20
     self.player_bullet_speed_per_second = 500
@@ -988,7 +989,7 @@ class Game:
     self.player_damage_gain = 1
     self.player_bullets_per_volley_gain = 1
     self.player_shoot_rate_gain = 0.5
-    self.player_speed_gain = 50
+    self.player_speed_gain = 35
     self.player_hp_regen_interval_reduction = 7
     self.player_hp_regen_interval_absolute_min = 1
     self.player_bullet_size_gain = 3
@@ -1820,22 +1821,38 @@ class Game:
 
 class Menu:
   """Class for the menu, includes load, cheat code enter and key remapping"""
-  def __init__(self, main_window_dimensions: dict, change_app_state):
+  def __init__(self, main_window_dimensions: dict, change_app_state, config, process_cheat_code):
+    self.change_app_state = change_app_state
+    self.config = config
     self.main_window_dimensions = main_window_dimensions
     self.menu = {}
     self.init_menu()
   
+  def load_game(self, event):
+    """Modifies the config by reference and changes state to game"""
+    save_file_path = filedialog.askopenfilename(initialdir="./saves/")
+    # Checks if the file path is not empty and that the save file exists
+    if(save_file_path != "" and pathlib.Path(save_file_path).exists()):
+      self.config["save_file_path"] = save_file_path
+      self.change_app_state("game")
+  
+
+
   def init_menu(self):
     """Initialize the menu"""
     main_window.columnconfigure(0, weight = 1)
     main_window.rowconfigure(0, weight = 1)
-    button_font = "Arial 24"
+    button_font = "Arial 22"
     self.bg = tk.PhotoImage(file="images/menu_background.png")
+    # Create a new frame and place buttons in that frame
     self.menu["Menu_frame"] = tk.Frame(main_window, bg="white")
+    # I HATE TKINTER
     self.menu["Menu_frame"].columnconfigure(0, weight = 1)
     self.menu["Menu_frame"].rowconfigure(0, weight =1)
     self.menu["Menu_frame"].rowconfigure(1, weight =1)
     self.menu["Menu_frame"].rowconfigure(2, weight =1)
+    self.menu["Menu_frame"].rowconfigure(3, weight =1)
+    
     self.menu["Background"] = tk.Label(self.menu["Menu_frame"], image=self.bg)
     self.menu["Background"].place(x = 0, y = 0, relwidth=1, relheight=1)
     self.menu["New_game"] = tk.Button(self.menu["Menu_frame"], text="New game", font=button_font, height=2, width=15)
@@ -1844,8 +1861,17 @@ class Menu:
     self.menu["Load_game"].grid(row = 1, column = 0, sticky="")
     self.menu["Cheats"] = tk.Button(self.menu["Menu_frame"], text="Cheats", font=button_font, height=2, width=15)
     self.menu["Cheats"].grid(row = 2, column = 0, sticky="")
-    #self.menu["Buttons_frame"].grid(row = 0, column = 0, sticky="NSEW")
+    self.menu["Leaderboard"] = tk.Button(self.menu["Menu_frame"], text="Leaderboard", font=button_font, height=2, width=15)
+    self.menu["Leaderboard"].grid(row = 3, column = 0, sticky="")
     self.menu["Menu_frame"].grid(row = 0, column = 0, sticky="NSEW")
+    # Bind the left mouse press to game start
+    self.menu["New_game"].bind("<Button-1>", lambda a: self.change_app_state("game"))
+    # Bind the load functionality
+    self.menu["Load_game"].bind("<Button-1>", self.load_game)
+    # Bind the leaderboard display, get path from config
+    self.menu["Leaderboard"].bind("<Button-1>", lambda a: utils.display_leaderboard(self.config["game"]["leaderboard_file_path"]))
+    # Bind cheat codes menu display
+    self.menu["Cheats"].bind("<Button-1>", lambda a: self.change_app_state("cheat_codes"))
     main_window.mainloop()
 
 
@@ -1872,7 +1898,7 @@ class Application:
     """Modifies config"""
     self.config[key] = value
   
-  def process_cheat_code(self, code: str):
+  def process_cheat_code(self, code: str) -> bool:
     """Process cheat code entered from the menu"""
     # If cheat code is valid, then activates it in the config
     # Cheatcodes:
@@ -1895,8 +1921,10 @@ class Application:
     if temp != None:
       self.config["game"]["cheat_list"].append(code)
       print(f"{code} cheatcode applied: {temp}")
+      return True
     else:
       print(f"{code} is not a valid cheat code")
+      return False
 
   def configure_main_window(self):
     """Initializes the main_window"""
@@ -1973,7 +2001,6 @@ class Application:
     """Function for changing app states
     App states:
     main_menu
-    load
     cheat_codes
     game
     """
@@ -1993,7 +2020,7 @@ class Application:
       # self.process_cheat_code("uionjs")
       game = Game(self.main_window_dimensions, self.config, self.change_app_state)
     elif self.state == "menu":
-      menu = Menu(self.main_window_dimensions, self.change_app_state)
+      menu = Menu(self.main_window_dimensions, self.change_app_state, self.config, self.process_cheat_code)
   
 
 def main():
