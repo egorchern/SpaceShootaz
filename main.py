@@ -1764,32 +1764,35 @@ class Game:
   
   def save_game(self, event):
     """Saves the current state of the game via pickle library into a file with filename given by user"""
-    self.pause()
-    canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
-    # Need to delete all attributes that are tkinter elements
-    # Save all bomb images and then delete them 
-    bomb_image_list = []
-    for bomb in self.enemy_bomb_list: 
-      bomb_image_list.append(bomb.bomb_image)
-      bomb.bomb_image = None
-    # Delete right menu, because it uses tkinter elements
-    self.right_menu = None
-    self.spreadsheet = None
-    # this try is for when the user clicks cancel, which is impossible to prevent
-    try:
-      # Ask the user for filepath of the save
-      save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
-      file = open(save_file_path, 'wb')
-      # Use pickle to save the Game class
-      pickle.dump(self, file)
-      file.close()
-      # Restore bomb images
-      for i in range(len(bomb_image_list)):
-        self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
-      # Restore right menu
-      self.create_right_menu()
-    except:
-      pass
+    # Only allowed to save if game is not finished
+    if self.game_state != 1:
+      
+      self.pause()
+      canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+      # Need to delete all attributes that are tkinter elements
+      # Save all bomb images and then delete them 
+      bomb_image_list = []
+      for bomb in self.enemy_bomb_list: 
+        bomb_image_list.append(bomb.bomb_image)
+        bomb.bomb_image = None
+      # Delete right menu, because it uses tkinter elements
+      self.right_menu = None
+      self.spreadsheet = None
+      # this try is for when the user clicks cancel, which is impossible to prevent
+      try:
+        # Ask the user for filepath of the save
+        save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
+        file = open(save_file_path, 'wb')
+        # Use pickle to save the Game class
+        pickle.dump(self, file)
+        file.close()
+        # Restore bomb images
+        for i in range(len(bomb_image_list)):
+          self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
+        # Restore right menu
+        self.create_right_menu()
+      except:
+        pass
   
   def record_in_leaderboard(self):
     """Record the game in the leaderboard"""
