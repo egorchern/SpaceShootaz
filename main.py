@@ -1,4 +1,4 @@
-"""Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester 16321 Python coursework
+"""Copyright - Egor Chernyshev 27/11/2021. SpaceShootaz - game made for University of Manchester 16321 Python coursework
 Window size: 1600 x 900
 Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
 """
@@ -678,7 +678,7 @@ class Ship:
 
 class Game:
   """ Class for the game, includes frame trigger, pause/resume functions and etc. """
-  def __init__(self, main_window_dimensions: dict, config: dict):
+  def __init__(self, main_window_dimensions: dict, config: dict, change_app_state):
     
     main_window.columnconfigure(0, weight=1)
     main_window.columnconfigure(1, weight=1)
@@ -1820,8 +1820,33 @@ class Game:
 
 class Menu:
   """Class for the menu, includes load, cheat code enter and key remapping"""
-  def __init__(self):
-    pass
+  def __init__(self, main_window_dimensions: dict, change_app_state):
+    self.main_window_dimensions = main_window_dimensions
+    self.menu = {}
+    self.init_menu()
+  
+  def init_menu(self):
+    """Initialize the menu"""
+    main_window.columnconfigure(0, weight = 1)
+    main_window.rowconfigure(0, weight = 1)
+    button_font = "Arial 24"
+    self.bg = tk.PhotoImage(file="images/menu_background.png")
+    self.menu["Menu_frame"] = tk.Frame(main_window, bg="white")
+    self.menu["Menu_frame"].columnconfigure(0, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(0, weight =1)
+    self.menu["Menu_frame"].rowconfigure(1, weight =1)
+    self.menu["Menu_frame"].rowconfigure(2, weight =1)
+    self.menu["Background"] = tk.Label(self.menu["Menu_frame"], image=self.bg)
+    self.menu["Background"].place(x = 0, y = 0, relwidth=1, relheight=1)
+    self.menu["New_game"] = tk.Button(self.menu["Menu_frame"], text="New game", font=button_font, height=2, width=15)
+    self.menu["New_game"].grid(row = 0, column = 0, sticky="")
+    self.menu["Load_game"] = tk.Button(self.menu["Menu_frame"], text="Load game", font=button_font, height=2, width=15)
+    self.menu["Load_game"].grid(row = 1, column = 0, sticky="")
+    self.menu["Cheats"] = tk.Button(self.menu["Menu_frame"], text="Cheats", font=button_font, height=2, width=15)
+    self.menu["Cheats"].grid(row = 2, column = 0, sticky="")
+    #self.menu["Buttons_frame"].grid(row = 0, column = 0, sticky="NSEW")
+    self.menu["Menu_frame"].grid(row = 0, column = 0, sticky="NSEW")
+    main_window.mainloop()
 
 
 class Application: 
@@ -1840,7 +1865,7 @@ class Application:
     # Initialize the main window
     self.configure_main_window()
     self.parse_config()
-    self.on_app_state_change()
+    self.change_app_state("menu")
     main_window.mainloop()
 
   def modify_config(self, key: str, value):
@@ -1944,7 +1969,7 @@ class Application:
       self.config["game"]["cheat_list"] = []
       self.create_leaderboard()
   
-  def on_app_state_change(self):
+  def change_app_state(self, new_state: str):
     """Function for changing app states
     App states:
     main_menu
@@ -1952,6 +1977,7 @@ class Application:
     cheat_codes
     game
     """
+    self.state = new_state
     # Destroy children widgets to reset the window on state change
     lst = main_window.grid_slaves()
     for l in lst:
@@ -1965,10 +1991,9 @@ class Application:
       # self.process_cheat_code("junji")
       # self.process_cheat_code("scrcheat")
       # self.process_cheat_code("uionjs")
-      game = Game(self.main_window_dimensions, self.config)
-      main_window.columnconfigure(0, weight=1)
-      main_window.columnconfigure(1, weight=1)
-    pass
+      game = Game(self.main_window_dimensions, self.config, self.change_app_state)
+    elif self.state == "menu":
+      menu = Menu(self.main_window_dimensions, self.change_app_state)
   
 
 def main():
