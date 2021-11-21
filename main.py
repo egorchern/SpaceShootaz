@@ -1821,10 +1821,75 @@ class Game:
     file.write(to_write)
     file.close()
 
+class CheatcodesMenu:
+  def __init__(self, change_app_state, config, process_cheat_code):
+    self.change_app_state = change_app_state
+    self.config = config
+    self.process_cheat_code = process_cheat_code
+    self.menu = {}
+    self.applied_cheats = []
+    self.init_menu()
+
+  def try_cheat_code(self, event):
+    """Tries the cheat code entered into cheat field"""
+    cheat_code = self.menu["Cheat_entry"].get()
+    # Call the Application method for processing cheatcodes
+    res = self.process_cheat_code(cheat_code)
+    # If cheat code is valid and not applied already
+    if res != "" and res != "same":
+      self.menu["Cheat_alert"]["text"] = f"Sucess! cheat code '{cheat_code}' is applied: {res}"
+      self.applied_cheats.append(res)
+      self.menu["Cheats_applied"]["text"] = f"Applied cheats: {', '.join(self.applied_cheats)}"
+    # If valid cheat code and is applied already
+    elif res != "" and res == "same":
+      self.menu["Cheat_alert"]["text"] = f"Failure! cheat code '{cheat_code}' is already applied!"
+    # Non valid cheat code
+    else:
+      self.menu["Cheat_alert"]["text"] = f"Failure! cheat code '{cheat_code}' is not a valid cheat code!"
+
+
+  def init_menu(self):
+    """Initialize the menu."""
+    font = "Arial 22"
+    font_smaller = "Arial 15"
+    main_window.columnconfigure(0, weight = 1)
+    main_window.rowconfigure(0, weight = 1)
+    self.bg = tk.PhotoImage(file="images/menu_background.png")
+    
+    self.menu["Menu_frame"] =  tk.Frame(main_window, bg="white")
+    self.menu["Menu_frame"].columnconfigure(0, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(0, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(1, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(2, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(3, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(4, weight = 1)
+    
+    self.menu["Background"] = tk.Label(self.menu["Menu_frame"], image=self.bg)
+    self.menu["Background"].place(x = 0, y = 0, relwidth=1, relheight=1)
+    self.menu["Cheat_label"] = tk.Label(self.menu["Menu_frame"], font=font, text="Enter a cheat code:" , bg="white")
+    self.menu["Cheat_label"].grid(row = 0, column = 0, sticky="")
+    fram = tk.Frame(self.menu["Menu_frame"], bg="white")
+    self.menu["Cheat_entry"] = tk.Entry(fram, font=font, borderwidth=1, relief="solid")
+    self.menu["Cheat_entry"].grid(row = 0, column = 0, sticky="NS")
+    self.menu["Cheat_try"] = tk.Button(fram, font=font, text="Try")
+    self.menu["Cheat_try"].grid(row = 0, column = 1, sticky="NS", padx = 5)
+    self.menu["Cheats_applied"] = tk.Label(self.menu["Menu_frame"], font=font_smaller, text="Cheats applied: " , bg="white")
+    self.menu["Cheats_applied"].grid(row = 1, column = 0, sticky="")
+    fram.grid(row = 2, column = 0, sticky="")
+    self.menu["Cheat_alert"] = tk.Label(self.menu["Menu_frame"], font=font, text="" , bg="white")
+    self.menu["Cheat_alert"].grid(row = 3, column = 0, sticky="")
+    self.menu["New_game"] = tk.Button(self.menu["Menu_frame"], font=font, text="New game", height=2)
+    self.menu["New_game"].grid(row = 4, column = 0, sticky="")
+    self.menu["Menu_frame"].grid(row = 0, column = 0, sticky="NSEW")
+    
+    self.menu["Cheat_try"].bind("<Button-1>", self.try_cheat_code)
+    self.menu["New_game"].bind("<Button-1>", lambda a: self.change_app_state("game"))
+    # Needed to display the background
+    main_window.mainloop()
 
 class Menu:
   """Class for the menu, includes load, cheat code enter and key remapping"""
-  def __init__(self, main_window_dimensions: dict, change_app_state, config, process_cheat_code):
+  def __init__(self, main_window_dimensions: dict, change_app_state, config):
     self.change_app_state = change_app_state
     self.config = config
     self.main_window_dimensions = main_window_dimensions
@@ -1838,9 +1903,7 @@ class Menu:
     if(save_file_path != "" and pathlib.Path(save_file_path).exists()):
       self.config["save_file_path"] = save_file_path
       self.change_app_state("game")
-  
-
-
+ 
   def init_menu(self):
     """Initialize the menu"""
     main_window.columnconfigure(0, weight = 1)
@@ -1875,6 +1938,7 @@ class Menu:
     self.menu["Leaderboard"].bind("<Button-1>", lambda a: utils.display_leaderboard(self.config["game"]["leaderboard_file_path"]))
     # Bind cheat codes menu display
     self.menu["Cheats"].bind("<Button-1>", lambda a: self.change_app_state("cheat_codes"))
+    # Needed to display the background
     main_window.mainloop()
 
 
@@ -1921,13 +1985,19 @@ class Application:
     }
     # Check if the code entered is a valid cheatcode
     temp = codes.get(code)
-    if temp != None:
+    # If cheat code is valid and not applied
+    if temp != None and code not in self.config["game"]["cheat_list"]:
       self.config["game"]["cheat_list"].append(code)
       print(f"{code} cheatcode applied: {temp}")
-      return True
+      return temp
+    # If cheat code is valid but is already applied
+    elif temp != None and code in self.config["game"]["cheat_list"]:
+      print(f"{code} cheatcode is already applied")
+      return "same"
+    # If cheat code is unvalid
     else:
       print(f"{code} is not a valid cheat code")
-      return False
+      return ""
 
   def configure_main_window(self):
     """Initializes the main_window"""
@@ -2023,7 +2093,9 @@ class Application:
       # self.process_cheat_code("uionjs")
       game = Game(self.main_window_dimensions, self.config, self.change_app_state)
     elif self.state == "menu":
-      menu = Menu(self.main_window_dimensions, self.change_app_state, self.config, self.process_cheat_code)
+      menu = Menu(self.main_window_dimensions, self.change_app_state, self.config)
+    elif self.state == "cheat_codes":
+      cheats = CheatcodesMenu(self.change_app_state, self.config, self.process_cheat_code)
   
 
 def main():
