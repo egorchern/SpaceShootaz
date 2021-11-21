@@ -1,4 +1,4 @@
-"""Copyright - Egor Chernyshev. SpaceShootaz - game made for University of Manchester 16321 Python coursework
+"""Copyright - Egor Chernyshev 27/11/2021. SpaceShootaz - game made for University of Manchester 16321 Python coursework
 Window size: 1600 x 900
 Window should not be resizable but still, DO NOT RESIZE THE WINDOW. Window initializes with correct size at start
 """
@@ -6,12 +6,12 @@ import tkinter as tk
 import math
 import configparser
 import pathlib
+import os
 import random
 import re
 import pickle
 from tkinter import filedialog
 from tkinter import messagebox
-import threading
 
 utils = 0
 bullet_volley_offset = 6
@@ -250,25 +250,25 @@ class Utilities:
     # If no hitboxes collide, then objects don't collide, return False
     return False
 
-  def separate_list_into_index_parts(self, lst: list, parts: int) -> list[list]:
-    """Separates a list into n lists, with excess elements going equally into first lists"""
-    output = []
-    part_count = len(lst) // parts
-    i = 0
-    for k in range(parts):
-      current_count = 0
-      current_list = []
-      while current_count < part_count:
-        current_list.append(i)
-        i += 1
-        current_count += 1
-      output.append(current_list)
-    counter = 0
-    while i < len(lst):
-      output[counter].append(i)
-      counter += 1
-      i += 1
-    return output
+  # def separate_list_into_index_parts(self, lst: list, parts: int) -> list[list]:
+  #   """Separates a list into n lists, with excess elements going equally into first lists"""
+  #   output = []
+  #   part_count = len(lst) // parts
+  #   i = 0
+  #   for k in range(parts):
+  #     current_count = 0
+  #     current_list = []
+  #     while current_count < part_count:
+  #       current_list.append(i)
+  #       i += 1
+  #       current_count += 1
+  #     output.append(current_list)
+  #   counter = 0
+  #   while i < len(lst):
+  #     output[counter].append(i)
+  #     counter += 1
+  #     i += 1
+  #   return output
 
   def get_leaderboard_data(self, file_path: str) -> list:
     """Gets leaderboard data from a file_path and returns a processed list"""
@@ -349,7 +349,8 @@ class Bomb:
   def draw(self):
     """Draws the bomb on the canvas"""
     # Optimization to only instantiate new image if the stage is different
-    if self.is_different_stage and self.bomb_stage < self.len_image_paths or self.bomb_image == None:
+    # if self.is_different_stage and self.bomb_stage < self.len_image_paths or self.bomb_image == None and self.bomb_stage < self.len_image_paths:
+    if (self.is_different_stage or self.bomb_image == None) and self.bomb_stage < self.len_image_paths:
       self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
 
     if self.bomb_stage < self.len_image_paths:
@@ -678,10 +679,10 @@ class Ship:
 
 class Game:
   """ Class for the game, includes frame trigger, pause/resume functions and etc. """
-  def __init__(self, main_window_dimensions: dict, config: dict):
-    
-    main_window.columnconfigure(0, weight=1)
-    main_window.columnconfigure(1, weight=1)
+  def __init__(self, main_window_dimensions: dict, config: dict, change_app_state):
+    self.change_app_state = change_app_state
+    # main_window.columnconfigure(0, weight=1)
+    # main_window.columnconfigure(1, weight=1)
     self.config = config
     self.save_file_path = self.config["save_file_path"]
     self.leaderboard_file_path = self.config["game"]["leaderboard_file_path"]
@@ -860,6 +861,7 @@ class Game:
 
     # Bind save game button
     self.right_menu["save_button"].bind("<Button-1>", self.save_game)
+    self.right_menu["back_button"].bind("<Button-1>", lambda a: self.change_app_state("menu"))
 
   def update_right_menu(self):
     """Updates labels in the right menu"""
@@ -936,7 +938,7 @@ class Game:
     """Defines player variables"""
     self.player_width = 45
     self.player_height = 50
-    self.player_speed_per_second = 350
+    self.player_speed_per_second = 335
     self.player_bullet_width = 10
     self.player_bullet_height = 20
     self.player_bullet_speed_per_second = 500
@@ -988,7 +990,7 @@ class Game:
     self.player_damage_gain = 1
     self.player_bullets_per_volley_gain = 1
     self.player_shoot_rate_gain = 0.5
-    self.player_speed_gain = 50
+    self.player_speed_gain = 35
     self.player_hp_regen_interval_reduction = 7
     self.player_hp_regen_interval_absolute_min = 1
     self.player_bullet_size_gain = 3
@@ -1257,28 +1259,15 @@ class Game:
     if self.next_frame_after_id != 0:
       self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
   
-  def point_enemy_ships_in_list_to_player(self, index_list: list):
-    """Points certain ships towards a player"""
-    for index in index_list:
-      enemy_ship = self.enemy_ships_list[index]
-      angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
-      enemy_ship.transform(angle_to_player)
-
   def point_enemy_ships_to_player(self):
     """Points all enemy ships towards the player"""
-    threads = []
-    lists = utils.separate_list_into_index_parts(self.enemy_ships_list, thread_count)
-    for list in lists:
-      thread = threading.Thread(target=self.point_enemy_ships_in_list_to_player, args=[list])
-      threads.append(thread)
-      thread.start()
-    for thread in threads:
-      thread.join()
-    # # Points all enemy ship towards player
-    # for enemy_ship in self.enemy_ships_list:
-    #   # Calculate angle from enemy ship to the player ship
-    #   angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
-    #   enemy_ship.transform(angle_to_player)
+    
+    
+    # Points all enemy ship towards player
+    for enemy_ship in self.enemy_ships_list:
+      # Calculate angle from enemy ship to the player ship
+      angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
+      enemy_ship.transform(angle_to_player)
 
   def on_cursor_move(self, event):
     """Adjusts angle variable depending on where user points the cursor"""
@@ -1360,7 +1349,9 @@ class Game:
       self.game_state = 1
       self.pause()
       # This allows the frames to settle, so no missing staff
-      self.draw_everything()
+      # canvas.delete("all")
+      # self.draw_everything()
+      self.update_right_menu()
       canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Game Over!")
       self.record_in_leaderboard()
       utils.display_leaderboard(self.leaderboard_file_path)
@@ -1763,32 +1754,35 @@ class Game:
   
   def save_game(self, event):
     """Saves the current state of the game via pickle library into a file with filename given by user"""
-    self.pause()
-    canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
-    # Need to delete all attributes that are tkinter elements
-    # Save all bomb images and then delete them 
-    bomb_image_list = []
-    for bomb in self.enemy_bomb_list: 
-      bomb_image_list.append(bomb.bomb_image)
-      bomb.bomb_image = None
-    # Delete right menu, because it uses tkinter elements
-    self.right_menu = None
-    self.spreadsheet = None
-    # this try is for when the user clicks cancel, which is impossible to prevent
-    try:
-      # Ask the user for filepath of the save
-      save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
-      file = open(save_file_path, 'wb')
-      # Use pickle to save the Game class
-      pickle.dump(self, file)
-      file.close()
-      # Restore bomb images
-      for i in range(len(bomb_image_list)):
-        self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
-      # Restore right menu
-      self.create_right_menu()
-    except:
-      pass
+    # Only allowed to save if game is ongoing
+    if self.game_state == 0:
+      
+      self.pause()
+      canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
+      # Need to delete all attributes that are tkinter elements
+      # Save all bomb images and then delete them 
+      bomb_image_list = []
+      for bomb in self.enemy_bomb_list: 
+        bomb_image_list.append(bomb.bomb_image)
+        bomb.bomb_image = None
+      # Delete right menu, because it uses tkinter elements
+      self.right_menu = None
+      self.spreadsheet = None
+      # this try is for when the user clicks cancel, which is impossible to prevent
+      try:
+        # Ask the user for filepath of the save
+        save_file_path = filedialog.asksaveasfilename(initialdir="./saves/", initialfile="this_save.txt")
+        file = open(save_file_path, 'wb')
+        # Use pickle to save the Game class
+        pickle.dump(self, file)
+        file.close()
+        # Restore bomb images
+        for i in range(len(bomb_image_list)):
+          self.enemy_bomb_list[i].bomb_image = bomb_image_list[i]
+        # Restore right menu
+        self.create_right_menu()
+      except:
+        pass
   
   def record_in_leaderboard(self):
     """Record the game in the leaderboard"""
@@ -1817,11 +1811,131 @@ class Game:
     file.write(to_write)
     file.close()
 
+class CheatcodesMenu:
+  def __init__(self, change_app_state, config, process_cheat_code):
+    self.change_app_state = change_app_state
+    # flush current cheats
+    config["game"]["cheat_list"] = []
+    self.config = config
+    self.process_cheat_code = process_cheat_code
+    self.menu = {}
+    self.applied_cheats = []
+    self.init_menu()
+
+  def try_cheat_code(self, event):
+    """Tries the cheat code entered into cheat field"""
+    cheat_code = self.menu["Cheat_entry"].get()
+    # Call the Application method for processing cheatcodes
+    res = self.process_cheat_code(cheat_code)
+    # If cheat code is valid and not applied already
+    if res != "" and res != "same":
+      self.menu["Cheat_alert"]["text"] = f"Sucess! cheat code '{cheat_code}' is applied: {res}"
+      self.applied_cheats.append(res)
+      self.menu["Cheats_applied"]["text"] = f"Applied cheats: {', '.join(self.applied_cheats)}"
+    # If valid cheat code and is applied already
+    elif res != "" and res == "same":
+      self.menu["Cheat_alert"]["text"] = f"Failure! cheat code '{cheat_code}' is already applied!"
+    # Non valid cheat code
+    else:
+      self.menu["Cheat_alert"]["text"] = f"Failure! cheat code '{cheat_code}' is not a valid cheat code!"
+
+
+  def init_menu(self):
+    """Initialize the menu."""
+    font = "Arial 22"
+    font_smaller = "Arial 15"
+    main_window.columnconfigure(0, weight = 1)
+    main_window.rowconfigure(0, weight = 1)
+    self.bg = tk.PhotoImage(file="images/menu_background.png")
+    
+    self.menu["Menu_frame"] =  tk.Frame(main_window, bg="white")
+    self.menu["Menu_frame"].columnconfigure(0, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(0, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(1, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(2, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(3, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(4, weight = 1)
+    
+    self.menu["Background"] = tk.Label(self.menu["Menu_frame"], image=self.bg)
+    self.menu["Background"].place(x = 0, y = 0, relwidth=1, relheight=1)
+    self.menu["Cheat_label"] = tk.Label(self.menu["Menu_frame"], font=font, text="Enter a cheat code:" , bg="white")
+    self.menu["Cheat_label"].grid(row = 0, column = 0, sticky="")
+    fram = tk.Frame(self.menu["Menu_frame"], bg="white")
+    self.menu["Cheat_entry"] = tk.Entry(fram, font=font, borderwidth=1, relief="solid")
+    self.menu["Cheat_entry"].grid(row = 0, column = 0, sticky="NS")
+    self.menu["Cheat_try"] = tk.Button(fram, font=font, text="Try")
+    self.menu["Cheat_try"].grid(row = 0, column = 1, sticky="NS", padx = 5)
+    self.menu["Cheats_applied"] = tk.Label(self.menu["Menu_frame"], font=font_smaller, text="Cheats applied: " , bg="white")
+    self.menu["Cheats_applied"].grid(row = 1, column = 0, sticky="")
+    fram.grid(row = 2, column = 0, sticky="")
+    self.menu["Cheat_alert"] = tk.Label(self.menu["Menu_frame"], font=font, text="" , bg="white")
+    self.menu["Cheat_alert"].grid(row = 3, column = 0, sticky="")
+    self.menu["New_game"] = tk.Button(self.menu["Menu_frame"], font=font, text="New game", height=2)
+    self.menu["New_game"].grid(row = 4, column = 0, sticky="")
+    self.menu["Menu_frame"].grid(row = 0, column = 0, sticky="NSEW")
+    
+    self.menu["Cheat_try"].bind("<Button-1>", self.try_cheat_code)
+    self.menu["New_game"].bind("<Button-1>", lambda a: self.change_app_state("game"))
+    # Needed to display the background
+    main_window.mainloop()
 
 class Menu:
   """Class for the menu, includes load, cheat code enter and key remapping"""
-  def __init__(self):
-    pass
+  def __init__(self, main_window_dimensions: dict, change_app_state, config):
+    self.change_app_state = change_app_state
+    self.config = config
+    self.main_window_dimensions = main_window_dimensions
+    self.menu = {}
+    self.init_menu()
+  
+  def load_game(self, event):
+    """Modifies the config by reference and changes state to game"""
+    save_file_path = filedialog.askopenfilename(initialdir="./saves/")
+    # Checks if the file path is not empty and that the save file exists
+    if(save_file_path != "" and pathlib.Path(save_file_path).exists()):
+      self.config["save_file_path"] = save_file_path
+      self.change_app_state("game")
+ 
+  def init_menu(self):
+    """Initialize the menu"""
+    main_window.columnconfigure(0, weight = 1)
+    main_window.rowconfigure(0, weight = 1)
+    button_font = "Arial 22"
+    self.bg = tk.PhotoImage(file="images/menu_background.png")
+    # Create a new frame and place buttons in that frame
+    self.menu["Menu_frame"] = tk.Frame(main_window, bg="white")
+    # I HATE TKINTER
+    self.menu["Menu_frame"].columnconfigure(0, weight = 1)
+    self.menu["Menu_frame"].rowconfigure(0, weight =1)
+    self.menu["Menu_frame"].rowconfigure(1, weight =1)
+    self.menu["Menu_frame"].rowconfigure(2, weight =1)
+    self.menu["Menu_frame"].rowconfigure(3, weight =1)
+    # main_windowself.menu["Menu_frame"].rowconfigure(4, weight =1)
+    self.menu["Background"] = tk.Label(self.menu["Menu_frame"], image=self.bg)
+    self.menu["Background"].place(x = 0, y = 0, relwidth=1, relheight=1)
+    self.menu["New_game"] = tk.Button(self.menu["Menu_frame"], text="New game", font=button_font, height=2, width=15)
+    self.menu["New_game"].grid(row = 0, column = 0, sticky="")
+    self.menu["Load_game"] = tk.Button(self.menu["Menu_frame"], text="Load game", font=button_font, height=2, width=15)
+    self.menu["Load_game"].grid(row = 1, column = 0, sticky="")
+    self.menu["Cheats"] = tk.Button(self.menu["Menu_frame"], text="Cheats", font=button_font, height=2, width=15)
+    self.menu["Cheats"].grid(row = 2, column = 0, sticky="")
+    self.menu["Leaderboard"] = tk.Button(self.menu["Menu_frame"], text="Leaderboard", font=button_font, height=2, width=15)
+    self.menu["Leaderboard"].grid(row = 3, column = 0, sticky="")
+    # self.menu["Settings"] = tk.Button(self.menu["Menu_frame"], text="Settings", font=button_font, height=2, width=15)
+    # self.menu["Settings"].grid(row = 4, column = 0, sticky="")
+    self.menu["Menu_frame"].grid(row = 0, column = 0, sticky="NSEW")
+    # Bind the left mouse press to game start
+    self.menu["New_game"].bind("<Button-1>", lambda a: self.change_app_state("game"))
+    # Bind the load functionality
+    self.menu["Load_game"].bind("<Button-1>", self.load_game)
+    # Bind the leaderboard display, get path from config
+    self.menu["Leaderboard"].bind("<Button-1>", lambda a: utils.display_leaderboard(self.config["game"]["leaderboard_file_path"]))
+    # Bind cheat codes menu display
+    self.menu["Cheats"].bind("<Button-1>", lambda a: self.change_app_state("cheat_codes"))
+    # Bind settings open
+    # self.menu["Settings"].bind("<Button-1>", lambda a: os.system(f"config.ini"))
+    # Needed to display the background
+    main_window.mainloop()
 
 
 class Application: 
@@ -1840,14 +1954,14 @@ class Application:
     # Initialize the main window
     self.configure_main_window()
     self.parse_config()
-    self.on_app_state_change()
+    self.change_app_state("menu")
     main_window.mainloop()
 
   def modify_config(self, key: str, value):
     """Modifies config"""
     self.config[key] = value
   
-  def process_cheat_code(self, code: str):
+  def process_cheat_code(self, code: str) -> bool:
     """Process cheat code entered from the menu"""
     # If cheat code is valid, then activates it in the config
     # Cheatcodes:
@@ -1867,11 +1981,19 @@ class Application:
     }
     # Check if the code entered is a valid cheatcode
     temp = codes.get(code)
-    if temp != None:
+    # If cheat code is valid and not applied
+    if temp != None and code not in self.config["game"]["cheat_list"]:
       self.config["game"]["cheat_list"].append(code)
       print(f"{code} cheatcode applied: {temp}")
+      return temp
+    # If cheat code is valid but is already applied
+    elif temp != None and code in self.config["game"]["cheat_list"]:
+      print(f"{code} cheatcode is already applied")
+      return "same"
+    # If cheat code is unvalid
     else:
       print(f"{code} is not a valid cheat code")
+      return ""
 
   def configure_main_window(self):
     """Initializes the main_window"""
@@ -1890,18 +2012,24 @@ class Application:
   def create_leaderboard(self):
     """Create leaderboard file if it doesnt exist"""
     temp = self.config["game"]["leaderboard_file_path"]
+    # Creates a new leaderboard if it does not exist
     if not pathlib.Path(temp).exists():
       file = open(self.config["game"]["leaderboard_file_path"], "w")
       standard_leaderboard = "1) Jess: 1482.5\n2) Crab: 391.5\n3) Michael: 124"
       file.write(standard_leaderboard)
       file.close()
+    # Creates saves folder if it doesn't already exist
+    if not pathlib.Path("./saves").exists():
+      os.mkdir("./saves")
 
   def create_new_config(self):
     """Creates a new config.ini file with standard settings below"""
     parser = configparser.ConfigParser()
     parser.add_section("IDENTITY")
+    parser.set("IDENTITY", "#Please relaunch the app for changes to take effect", "")
     parser.set("IDENTITY", "Name", "Bob the Builder")
     parser.set("IDENTITY", "Leaderboard_file_path", "leaderboard.txt")
+    
     parser.add_section("GAME")
     parser.set("GAME", "Display_Hitboxes", "False")
     parser.set("GAME", "Display_Hitbars", "True")
@@ -1944,14 +2072,16 @@ class Application:
       self.config["game"]["cheat_list"] = []
       self.create_leaderboard()
   
-  def on_app_state_change(self):
+  def change_app_state(self, new_state: str):
     """Function for changing app states
     App states:
     main_menu
-    load
     cheat_codes
     game
     """
+    
+    
+    self.state = new_state
     # Destroy children widgets to reset the window on state change
     lst = main_window.grid_slaves()
     for l in lst:
@@ -1965,10 +2095,11 @@ class Application:
       # self.process_cheat_code("junji")
       # self.process_cheat_code("scrcheat")
       # self.process_cheat_code("uionjs")
-      game = Game(self.main_window_dimensions, self.config)
-      main_window.columnconfigure(0, weight=1)
-      main_window.columnconfigure(1, weight=1)
-    pass
+      game = Game(self.main_window_dimensions, self.config, self.change_app_state)
+    elif self.state == "menu":
+      menu = Menu(self.main_window_dimensions, self.change_app_state, self.config)
+    elif self.state == "cheat_codes":
+      cheats = CheatcodesMenu(self.change_app_state, self.config, self.process_cheat_code)
   
 
 def main():
