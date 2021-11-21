@@ -251,25 +251,25 @@ class Utilities:
     # If no hitboxes collide, then objects don't collide, return False
     return False
 
-  def separate_list_into_index_parts(self, lst: list, parts: int) -> list[list]:
-    """Separates a list into n lists, with excess elements going equally into first lists"""
-    output = []
-    part_count = len(lst) // parts
-    i = 0
-    for k in range(parts):
-      current_count = 0
-      current_list = []
-      while current_count < part_count:
-        current_list.append(i)
-        i += 1
-        current_count += 1
-      output.append(current_list)
-    counter = 0
-    while i < len(lst):
-      output[counter].append(i)
-      counter += 1
-      i += 1
-    return output
+  # def separate_list_into_index_parts(self, lst: list, parts: int) -> list[list]:
+  #   """Separates a list into n lists, with excess elements going equally into first lists"""
+  #   output = []
+  #   part_count = len(lst) // parts
+  #   i = 0
+  #   for k in range(parts):
+  #     current_count = 0
+  #     current_list = []
+  #     while current_count < part_count:
+  #       current_list.append(i)
+  #       i += 1
+  #       current_count += 1
+  #     output.append(current_list)
+  #   counter = 0
+  #   while i < len(lst):
+  #     output[counter].append(i)
+  #     counter += 1
+  #     i += 1
+  #   return output
 
   def get_leaderboard_data(self, file_path: str) -> list:
     """Gets leaderboard data from a file_path and returns a processed list"""
@@ -1259,28 +1259,15 @@ class Game:
     if self.next_frame_after_id != 0:
       self.next_frame_after_id = canvas.after(self.ms_interval, self.on_frame)
   
-  def point_enemy_ships_in_list_to_player(self, index_list: list):
-    """Points certain ships towards a player"""
-    for index in index_list:
-      enemy_ship = self.enemy_ships_list[index]
-      angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
-      enemy_ship.transform(angle_to_player)
-
   def point_enemy_ships_to_player(self):
     """Points all enemy ships towards the player"""
-    threads = []
-    lists = utils.separate_list_into_index_parts(self.enemy_ships_list, thread_count)
-    for list in lists:
-      thread = threading.Thread(target=self.point_enemy_ships_in_list_to_player, args=[list])
-      threads.append(thread)
-      thread.start()
-    for thread in threads:
-      thread.join()
-    # # Points all enemy ship towards player
-    # for enemy_ship in self.enemy_ships_list:
-    #   # Calculate angle from enemy ship to the player ship
-    #   angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
-    #   enemy_ship.transform(angle_to_player)
+    
+    
+    # Points all enemy ship towards player
+    for enemy_ship in self.enemy_ships_list:
+      # Calculate angle from enemy ship to the player ship
+      angle_to_player = utils.resolve_angle(enemy_ship.focal_point[0], enemy_ship.focal_point[1], self.player.focal_point[0], self.player.focal_point[1])
+      enemy_ship.transform(angle_to_player)
 
   def on_cursor_move(self, event):
     """Adjusts angle variable depending on where user points the cursor"""
@@ -1942,7 +1929,7 @@ class Menu:
     # Bind cheat codes menu display
     self.menu["Cheats"].bind("<Button-1>", lambda a: self.change_app_state("cheat_codes"))
     # Bind settings open
-    self.menu["Settings"].bind("<Button-1>", lambda a: os.startfile("config.ini"))
+    self.menu["Settings"].bind("<Button-1>", lambda a: os.system(f"config.ini"))
     # Needed to display the background
     main_window.mainloop()
 
