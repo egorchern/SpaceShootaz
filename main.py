@@ -1752,8 +1752,8 @@ class Game:
   
   def save_game(self, event):
     """Saves the current state of the game via pickle library into a file with filename given by user"""
-    # Only allowed to save if game is not finished
-    if self.game_state != 1:
+    # Only allowed to save if game is ongoing
+    if self.game_state == 0:
       
       self.pause()
       canvas.create_text(self.canvas_centre_x, self.canvas_centre_y, font="Arial 35 bold", text="Paused")
