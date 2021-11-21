@@ -12,7 +12,6 @@ import re
 import pickle
 from tkinter import filedialog
 from tkinter import messagebox
-import threading
 
 utils = 0
 bullet_volley_offset = 6
@@ -350,7 +349,8 @@ class Bomb:
   def draw(self):
     """Draws the bomb on the canvas"""
     # Optimization to only instantiate new image if the stage is different
-    if self.is_different_stage and self.bomb_stage < self.len_image_paths or self.bomb_image == None:
+    # if self.is_different_stage and self.bomb_stage < self.len_image_paths or self.bomb_image == None and self.bomb_stage < self.len_image_paths:
+    if (self.is_different_stage or self.bomb_image == None) and self.bomb_stage < self.len_image_paths:
       self.bomb_image = tk.PhotoImage(file=self.image_paths[self.bomb_stage])
 
     if self.bomb_stage < self.len_image_paths:
