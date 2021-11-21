@@ -6,6 +6,7 @@ import tkinter as tk
 import math
 import configparser
 import pathlib
+import os
 import random
 import re
 import pickle
@@ -1914,11 +1915,11 @@ class Menu:
     self.menu["Menu_frame"] = tk.Frame(main_window, bg="white")
     # I HATE TKINTER
     self.menu["Menu_frame"].columnconfigure(0, weight = 1)
-    self.menu["Menu_frame"].rowconfigure(0, weight =1)
+    self.menu["Menu_frame"].rowconfigure(0, weight =2)
     self.menu["Menu_frame"].rowconfigure(1, weight =1)
     self.menu["Menu_frame"].rowconfigure(2, weight =1)
     self.menu["Menu_frame"].rowconfigure(3, weight =1)
-    
+    self.menu["Menu_frame"].rowconfigure(4, weight =1)
     self.menu["Background"] = tk.Label(self.menu["Menu_frame"], image=self.bg)
     self.menu["Background"].place(x = 0, y = 0, relwidth=1, relheight=1)
     self.menu["New_game"] = tk.Button(self.menu["Menu_frame"], text="New game", font=button_font, height=2, width=15)
@@ -1929,6 +1930,8 @@ class Menu:
     self.menu["Cheats"].grid(row = 2, column = 0, sticky="")
     self.menu["Leaderboard"] = tk.Button(self.menu["Menu_frame"], text="Leaderboard", font=button_font, height=2, width=15)
     self.menu["Leaderboard"].grid(row = 3, column = 0, sticky="")
+    self.menu["Settings"] = tk.Button(self.menu["Menu_frame"], text="Settings", font=button_font, height=2, width=15)
+    self.menu["Settings"].grid(row = 4, column = 0, sticky="")
     self.menu["Menu_frame"].grid(row = 0, column = 0, sticky="NSEW")
     # Bind the left mouse press to game start
     self.menu["New_game"].bind("<Button-1>", lambda a: self.change_app_state("game"))
@@ -1938,6 +1941,8 @@ class Menu:
     self.menu["Leaderboard"].bind("<Button-1>", lambda a: utils.display_leaderboard(self.config["game"]["leaderboard_file_path"]))
     # Bind cheat codes menu display
     self.menu["Cheats"].bind("<Button-1>", lambda a: self.change_app_state("cheat_codes"))
+    # Bind settings open
+    self.menu["Settings"].bind("<Button-1>", lambda a: os.startfile("config.ini"))
     # Needed to display the background
     main_window.mainloop()
 
@@ -2026,8 +2031,10 @@ class Application:
     """Creates a new config.ini file with standard settings below"""
     parser = configparser.ConfigParser()
     parser.add_section("IDENTITY")
+    parser.set("IDENTITY", "#Please relaunch the app for changes to take effect", "")
     parser.set("IDENTITY", "Name", "Bob the Builder")
     parser.set("IDENTITY", "Leaderboard_file_path", "leaderboard.txt")
+    
     parser.add_section("GAME")
     parser.set("GAME", "Display_Hitboxes", "False")
     parser.set("GAME", "Display_Hitbars", "True")
