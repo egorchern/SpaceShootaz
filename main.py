@@ -2053,7 +2053,7 @@ class Menu:
         # Create a new frame and place buttons in that frame
         self.menu["Menu_frame"] = tk.Frame(main_window, bg="white")
         # I HATE TKINTER
-        self.menu["Menu_frame"].columnconfigure(0, weight=1)
+        self.menu["Menu_frame"].columnconfigure(0, weight=1)  # Like flex grow
         self.menu["Menu_frame"].rowconfigure(0, weight=1)
         self.menu["Menu_frame"].rowconfigure(1, weight=1)
         self.menu["Menu_frame"].rowconfigure(2, weight=1)
@@ -2064,16 +2064,16 @@ class Menu:
         self.menu["Background"].place(x=0, y=0, relwidth=1, relheight=1)
         self.menu["New_game"] = tk.Button(
             self.menu["Menu_frame"], text="New game", font=button_font, height=2, width=15)
-        self.menu["New_game"].grid(row=0, column=0, sticky="")
+        self.menu["New_game"].grid(row=0, column=0, sticky="S", pady=50)
         self.menu["Load_game"] = tk.Button(
             self.menu["Menu_frame"], text="Load game", font=button_font, height=2, width=15)
-        self.menu["Load_game"].grid(row=1, column=0, sticky="")
+        self.menu["Load_game"].grid(row=1, column=0, sticky="S", pady=50)
         self.menu["Cheats"] = tk.Button(
             self.menu["Menu_frame"], text="Cheats", font=button_font, height=2, width=15)
-        self.menu["Cheats"].grid(row=2, column=0, sticky="")
+        self.menu["Cheats"].grid(row=2, column=0, sticky="S", pady=50)
         self.menu["Leaderboard"] = tk.Button(
             self.menu["Menu_frame"], text="Leaderboard", font=button_font, height=2, width=15)
-        self.menu["Leaderboard"].grid(row=3, column=0, sticky="")
+        self.menu["Leaderboard"].grid(row=3, column=0, sticky="S", pady=50)
         # self.menu["Settings"] = tk.Button(self.menu["Menu_frame"], text="Settings", font=button_font, height=2, width=15)
         # self.menu["Settings"].grid(row = 4, column = 0, sticky="")
         self.menu["Menu_frame"].grid(row=0, column=0, sticky="NSEW")
