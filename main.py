@@ -1013,7 +1013,7 @@ class Game:
 
         # If health is at 0, call gameover
         if self.player.health == 0:
-            self.gameover()
+            self.game_state = 1
 
     def instantiate_player(self):
         """Create an instance of ship class named player"""
@@ -1365,6 +1365,8 @@ class Game:
         self.handle_player_enemy_ship_collision()
         # Draw everything separately
         self.draw_everything()
+        if self.game_state == 1:
+            self.gameover()
         # Increase ingame time variables
         self.frame_counter += 1
         if(self.frame_counter > self.fps):
@@ -1466,18 +1468,16 @@ class Game:
 
     def gameover(self):
         """Function that handles what happens after players health is 0"""
-        if self.game_state == 0:
-            # Change state to game ended
-            self.game_state = 1
-            self.pause()
-            # This allows the frames to settle, so no missing staff
-            # canvas.delete("all")
-            # self.draw_everything()
-            self.update_right_menu()
-            canvas.create_text(self.canvas_centre_x, self.canvas_centre_y,
-                               font="Arial 35 bold", text="Game Over!")
-            self.record_in_leaderboard()
-            utils.display_leaderboard(self.leaderboard_file_path)
+
+        self.pause()
+        # This allows the frames to settle, so no missing staff
+        # canvas.delete("all")
+        # self.draw_everything()
+        self.update_right_menu()
+        canvas.create_text(self.canvas_centre_x, self.canvas_centre_y,
+                           font="Arial 35 bold", text="Game Over!")
+        self.record_in_leaderboard()
+        utils.display_leaderboard(self.leaderboard_file_path)
 
     def handle_enemy_bullets_collisions(self, enemy_ship_index: int):
         """Checks collsion of enemy bullets with the player ship and processes if collision detected"""
