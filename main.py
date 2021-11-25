@@ -13,6 +13,7 @@ import pickle
 from tkinter import filedialog
 from tkinter import messagebox
 
+
 utils = 0
 bullet_volley_offset = 6
 main_window = None
@@ -256,31 +257,12 @@ class Utilities:
         # If no hitboxes collide, then objects don't collide, return False
         return False
 
-    # def separate_list_into_index_parts(self, lst: list, parts: int) -> list[list]:
-    #   """Separates a list into n lists, with excess elements going equally into first lists"""
-    #   output = []
-    #   part_count = len(lst) // parts
-    #   i = 0
-    #   for k in range(parts):
-    #     current_count = 0
-    #     current_list = []
-    #     while current_count < part_count:
-    #       current_list.append(i)
-    #       i += 1
-    #       current_count += 1
-    #     output.append(current_list)
-    #   counter = 0
-    #   while i < len(lst):
-    #     output[counter].append(i)
-    #     counter += 1
-    #     i += 1
-    #   return output
-
     def get_leaderboard_data(self, file_path: str) -> list:
         """Gets leaderboard data from a file_path and returns a processed list"""
         def extract_info(string: str):
             info = []
-            temp = re.search("\d+\) (?P<name>[^:]+):(?P<score>.*)", string)
+            # Picks out the user name and score from the string
+            temp = re.search("^\d+\) (?P<name>.+):(?P<score>.*)$", string)
             score = float(temp.group("score"))
             name = temp.group("name")
             info.append(name)
@@ -577,8 +559,8 @@ class Ship:
         self.points = utils.calculate_points_metadata(
             self.points, self.focal_point)
         self.calculate_hitboxes_metadata()
-        self.calc_bounds_info()
         self.transform(self.angle)
+        self.calc_bounds_info()
 
     def shoot_volley(self, frame_counter: int, seconds_elapsed: int):
         """Shoots a volley of bullets_per_volley num of bullets if is allowed to shoot"""
@@ -762,7 +744,7 @@ class Game:
         self.frame_counter = 1
         self.seconds_elapsed = 0
         self.angle = 0
-        self.min_distance_between_bounds = 5
+        self.min_distance_between_bounds = 15
         self.enemy_ships_list: list[Ship] = []
         self.display_hitboxes = self.game_config.get(
             "display_hitboxes") == "True"
@@ -827,7 +809,7 @@ class Game:
 
         # Define player name label
         self.right_menu["player_name"] = tk.Label(
-            master=self.right_menu["right_menu"], text=f"Name: {self.identity}", font=score_font, bg="white")
+            master=self.right_menu["right_menu"], text=f"Name: {self.identity}", font=score_font, bg="white", wraplength=self.main_window_dimensions["x"] - self.canvas_dimensions["x"] -50)
         self.right_menu["player_name"].grid(
             row=1, column=0, columnspan=2, pady=10, sticky="EW")
         # Define score labels
@@ -1062,7 +1044,7 @@ class Game:
         self.absolute_max_enemies_on_screen = 8
         self.absolute_min_ship_spawn_interval_seconds = 2
         self.enemy_ship_health = 3
-        self.enemy_ship_bullet_speed_per_second = 150
+        self.enemy_ship_bullet_speed_per_second = 175
         self.enemy_ship_bullet_damage = 1
         self.enemy_ship_color = "#ff0fcb"
         self.enemy_ship_width = 50
@@ -1103,7 +1085,7 @@ class Game:
     def define_enemy_scaling_variables(self):
         """Defines enemy scaling variables, like shoot rate gain"""
         self.enemy_upgrade_interval_seconds = 12
-        self.enemy_upgrades_per_interval = 2
+        self.enemy_upgrades_per_interval = 3
         self.enemy_health_gain = 1
         self.enemy_damage_gain = 1
         self.enemy_bullets_per_volley_gain = 1
@@ -1111,7 +1093,7 @@ class Game:
         self.enemy_shoot_rate_gain = 0.25
         self.enemy_absolute_max_shoot_rate = 2.5
         self.enemy_bullet_width_gain = 1.5
-        self.enemy_bullet_speed_per_second_gain = 15
+        self.enemy_bullet_speed_per_second_gain = 20
         self.max_enemies_on_screen_gain = 1
         self.enemy_ship_spawn_interval_decrease = 2
 
@@ -1790,9 +1772,9 @@ class Game:
                     self.enemy_ship_shoot_rate_per_second_max += self.enemy_shoot_rate_gain
                 # Round to prevent floating point innacurracy
                 self.enemy_ship_shoot_rate_per_second_min = round(
-                    self.enemy_ship_shoot_rate_per_second_min, 1)
+                    self.enemy_ship_shoot_rate_per_second_min, 2)
                 self.enemy_ship_shoot_rate_per_second_max = round(
-                    self.enemy_ship_shoot_rate_per_second_max, 1)
+                    self.enemy_ship_shoot_rate_per_second_max, 2)
             elif chosen_upgrade == 4:
                 self.enemy_ship_bullet_width += self.enemy_bullet_width_gain
                 self.enemy_ship_bullet_height += self.enemy_bullet_width_gain
