@@ -951,7 +951,12 @@ class Game:
         # Bind save game button
         self.right_menu["save_button"].bind("<Button-1>", self.save_game)
         self.right_menu["back_button"].bind(
-            "<Button-1>", lambda a: self.change_app_state("menu"))
+            "<Button-1>", self.go_back_to_menu)
+
+    def go_back_to_menu(self, event):
+        """flushes cheat list aand Calls change app state with menu parameters."""
+        self.config["game"]["cheat_list"] = []
+        self.change_app_state("menu")
 
     def update_right_menu(self):
         """Updates labels in the right menu"""
@@ -2029,7 +2034,7 @@ class CheatcodesMenu:
 class Menu:
     """Class for the menu, includes load, cheat code enter and key remapping"""
 
-    def __init__(self, main_window_dimensions: dict, change_app_state, config):
+    def __init__(self, main_window_dimensions: dict, change_app_state, config: dict):
         self.change_app_state = change_app_state
         self.config = config
         self.main_window_dimensions = main_window_dimensions
@@ -2113,10 +2118,6 @@ class Application:
         self.parse_config()
         self.change_app_state("menu")
         main_window.mainloop()
-
-    def modify_config(self, key: str, value):
-        """Modifies config"""
-        self.config[key] = value
 
     def process_cheat_code(self, code: str) -> bool:
         """Process cheat code entered from the menu"""
@@ -2248,7 +2249,6 @@ class Application:
             l.destroy()
 
         if self.state == "game":
-            #self.modify_config("save_file_path", "saves/this_save.txt")
             # self.process_cheat_code("infi")
             # self.process_cheat_code("aezkami")
             # self.process_cheat_code("quortli")
