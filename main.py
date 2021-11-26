@@ -711,8 +711,6 @@ class Game:
 
     def __init__(self, main_window_dimensions: dict, config: dict, change_app_state):
         self.change_app_state = change_app_state
-        # main_window.columnconfigure(0, weight=1)
-        # main_window.columnconfigure(1, weight=1)
         self.config = config
         self.save_file_path = self.config["save_file_path"]
         self.leaderboard_file_path = self.config["game"]["leaderboard_file_path"]
@@ -734,7 +732,7 @@ class Game:
             relief="solid",
             borderwidth=1
         )
-        canvas.grid(padx=5, pady=5, sticky="WE")
+        canvas.grid(padx=5, pady=5, sticky="W")
 
         self.canvas_centre_x = self.canvas_dimensions.get("x") // 2
         self.canvas_centre_y = self.canvas_dimensions.get("y") // 2
@@ -792,7 +790,7 @@ class Game:
 
         }
         self.right_menu["right_menu"] = tk.Frame(
-            master=main_window, bg="white")
+            master=main_window, bg="white", width=self.main_window_dimensions["x"] - self.canvas_dimensions["x"], height=self.main_window_dimensions["y"])
         button_font = "Arial 13"
         score_font = "Arial 24"
         # Define buttons
@@ -809,9 +807,9 @@ class Game:
 
         # Define player name label
         self.right_menu["player_name"] = tk.Label(
-            master=self.right_menu["right_menu"], text=f"Name: {self.identity}", font=score_font, bg="white", wraplength=self.main_window_dimensions["x"] - self.canvas_dimensions["x"] -50)
+            master=self.right_menu["right_menu"], text=f"Name: {self.identity}", font=score_font, bg="white", wraplength=350)
         self.right_menu["player_name"].grid(
-            row=1, column=0, columnspan=2, pady=10, sticky="EW")
+            row=1, column=0, columnspan=2, pady=10, sticky="")
         # Define score labels
         score_row = tk.Frame(self.right_menu["right_menu"], bg="white")
         self.right_menu["score_label"] = tk.Label(
